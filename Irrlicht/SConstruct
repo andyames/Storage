@@ -1,0 +1,177 @@
+# -*- coding: utf-8 -*-
+
+import os
+import SCons.Action
+
+
+
+# === set environment data ==========================================================================================
+directxdir = ""
+if "DXSDK_DIR" in os.environ :
+    directxdir = os.environ["DXSDK_DIR"]
+
+vars = Variables()
+vars.Add(PathVariable("installdir", "install directory", os.path.join("bin"),  PathVariable.PathIsDirCreate))
+vars.Add(EnumVariable("buildtarget", "type of the library", "shared", allowed_values=("shared", "static")))
+vars.Add(EnumVariable("buildtype", "name of target build type", "release", allowed_values=("debug", "release")))
+vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "linux", "osx", "win32-gcc", "win32-msvc", "win64-msvc")))
+
+vars.Add(PathVariable("directxsdk", "directory of the DirectX SDK", directxdir,  PathVariable.PathAccept))
+vars.Add(BoolVariable("addversionpath", "adds the version to the installation directory", True))
+
+
+builder = Builder(action = SCons.Action.Action("ln -s $SOURCE $TARGET"))
+env = Environment(variables=vars, BUILDERS = {"SymLink" : builder})
+Help(vars.GenerateHelpText(env))
+# ===================================================================================================================
+
+
+
+# === Irrlicht build constants & variables ===========================================================================
+env["libraryversion"]     = "1.8.0"
+env["libraryinstallname"] = "Irrlicht"
+env["irrlichtpath"]       = {
+    "library"              : os.path.join("source", "Irrlicht"),
+    "examples"             : "examples",
+    "install"              : env["installdir"]
+}
+
+if env["addversionpath"] :
+    env["irrlichtpath"]["install"] = os.path.join(env["irrlichtpath"]["install"], env["libraryversion"])
+# ===================================================================================================================
+
+
+
+
+
+# === set the sources (we use similar structure of the Makefile) ====================================================
+# library sources (libjpeg & bzip2 added manually, because not all files are needed)
+libjpeg  = [ os.path.join(env["irrlichtpath"]["library"], "jpeglib", i) for i in ["jcapimin.c", "jcapistd.c", "jccoefct.c", "jccolor.c", "jcdctmgr.c", "jchuff.c", "jcinit.c", "jcmainct.c", "jcmarker.c", "jcmaster.c", "jcomapi.c", "jcparam.c", "jcprepct.c", "jcsample.c", "jctrans.c", "jdapimin.c", "jdapistd.c", "jdatadst.c", "jdatasrc.c", "jdcoefct.c", "jdcolor.c", "jddctmgr.c", "jdhuff.c", "jdinput.c", "jdmainct.c", "jdmarker.c", "jdmaster.c", "jdmerge.c", "jdpostct.c", "jdsample.c", "jdtrans.c", "jerror.c", "jfdctflt.c", "jfdctfst.c", "jfdctint.c", "jidctflt.c", "jidctfst.c", "jidctint.c", "jmemmgr.c", "jmemnobs.c", "jquant1.c", "jquant2.c", "jutils.c", "jcarith.c", "jdarith.c", "jaricom.c"] ]
+libbzip2 = [ os.path.join(env["irrlichtpath"]["library"], "bzip2", i) for i in ["blocksort.c", "huffman.c", "crctable.c", "randtable.c", "bzcompress.c", "decompress.c", "bzlib.c"] ]
+
+srclibrary = Glob(os.path.join(env["irrlichtpath"]["library"], "*.cpp")) + Glob(os.path.join(env["irrlichtpath"]["library"], "libpng", "*.c")) + Glob(os.path.join(env["irrlichtpath"]["library"], "lzma", "*.c")) + Glob(os.path.join(env["irrlichtpath"]["library"], "zlib", "*.c")) + Glob(os.path.join(env["irrlichtpath"]["library"], "aesGladman", "*.cpp")) + libjpeg + libbzip2
+# ===================================================================================================================
+
+
+
+# === create build platform stuff ===================================================================================
+# general stuff
+env.AppendUnique(CPPPATH          = ["include", env["irrlichtpath"]["library"], os.path.join(env["irrlichtpath"]["library"], "zlib"), os.path.join(env["irrlichtpath"]["library"], "jpeglib"), os.path.join(env["irrlichtpath"]["library"], "libpng")])
+if env["buildtype"] == "debug" :
+    env.AppendUnique(CPPDEFINES  = ["_DEBUG"])
+    env["libraryinstallname"]    = env["libraryinstallname"] + "Debug"
+
+
+
+# platform stuff
+if env["platform"] == "osx" :
+    env.AppendUnique(CXXFLAGS    = ["-Wall", "-pipe"])
+    env.AppendUnique(CPPPATH     = [os.path.join(env["irrlichtpath"]["library"], "MacOSX")])
+    env.AppendUnique(LINKFLAGS   = ["-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+env["LIBPREFIX"]+env["libraryinstallname"]+"."+env["libraryversion"]+env["SHLIBSUFFIX"]])
+
+    if env["buildtype"] == "debug" :
+        env.AppendUnique(CXXFLAGS    = ["-g"])
+    elif env["buildtype"] == "release" :
+        env.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
+
+    env.AppendUnique(CFLAGS          = env["CXXFLAGS"])
+        
+    srclibrary.extend(Glob(os.path.join(env["irrlichtpath"]["library"], "MacOSX", "*.mm")))
+
+elif env["platform"] == "win32-msvc" :
+    if not os.path.exists(env["directxsdk"]) :
+        raise RuntimeError("Direct X SDK directory not exists")
+        
+    env.AppendUnique(CPPDEFINES  = ["WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_CRT_SECURE_NO_DEPRECATE", "_WINDLL", "_MBCS"])
+    env.AppendUnique(CXXFLAGS    = ["/analyze-", "/errorReport:queue", "/Gd", "/Gm-", "/GR-", "/nologo", "/W3", "/WX-", "/Zc:forScope", "/Zc:wchar_t"])
+    env.AppendUnique(CPPPATH     = [os.path.join(env["directxsdk"], "Include")])
+    env.AppendUnique(LINKFLAGS   = ["/VERSION:\""+env["libraryversion"]+"\"", "/INCREMENTAL:NO", "/NOLOGO", "/NODEFAULTLIB:\"libci.lib\"", "/MANIFEST:NO", "/TLBID:1", "/DYNAMICBASE", "/ERRORREPORT:QUEUE"])
+    env.AppendUnique(LIBPATH     = [os.path.join(env["directxsdk"], "Lib", "x86")]) 
+    env.AppendUnique(LIBS        = ["opengl32.lib", "user32.lib", "advapi32.lib", "gdi32.lib"])
+    
+    if env["buildtype"] == "debug" :
+        env.AppendUnique(CPPDEFINES  = ["_ITERATOR_DEBUG_LEVEL=0"])
+        env.AppendUnique(CXXFLAGS    = ["/fp:precise", "/GS", "/MTd", "/Od", "/Oy-", "/RTC1", "/Zi"])
+        env.AppendUnique(LINKFLAGS   = ["/DEBUG"])
+    elif env["buildtype"] == "release" :
+        env.AppendUnique(CPPDEFINES  = ["NDEBUG"])
+        env.AppendUnique(CXXFLAGS    = ["/arch:SSE2", "/fp:fast", "/GL", "/GF", "/GS-", "/Gy-", "/MT", "/Ob2", "/Oi", "/Ot", "/Ox", "/Oy"])
+        env.AppendUnique(LINKFLAGS   = ["/SUBSYSTEM:WINDOWS", "/OPT:REF", "/LTCG"])
+
+else :
+    raise RuntimeError("please define a build platform")
+# ===================================================================================================================
+
+
+
+# === build and install =============================================================================================
+# build lib
+if env["buildtarget"] == "shared" :
+    lib = env.SharedLibrary(env["libraryinstallname"], srclibrary)
+elif env["buildtarget"] == "static" :
+    lib = env.StaticLibrary(env["libraryinstallname"], srclibrary)
+
+libinstall = env.Install( os.path.join(env["irrlichtpath"]["install"], "lib"), lib )
+libheader  = []
+for i in Glob(os.path.join("include", "*.h")) :
+    libheader.append(env.Command(os.path.join(env["irrlichtpath"]["install"], "include", os.path.basename(str(i))), i, Copy("$TARGET", "$SOURCE")))
+
+
+libsymlink     = []
+if env["buildtarget"] == "shared" and env["platform"] in ["osx", "linux"] :
+    libsymlink = env.SymLink( str(libinstall[0]).replace(env["SHLIBSUFFIX"],"")+"."+env["libraryversion"]+env["SHLIBSUFFIX"], os.path.basename(str(libinstall[0])) )
+elif env["buildtarget"] == "shared" and "win" in env["platform"] :
+    libsymlink = str(libinstall[0])
+
+NoClean( [libinstall, libheader, libsymlink] )
+Default( [libinstall, libheader, libsymlink] )
+# ===================================================================================================================
+
+
+
+
+# === build the examples ============================================================================================
+examples = Environment()
+examples.AppendUnique(CPPPATH             = [os.path.join(env["irrlichtpath"]["install"], "include")])
+examples.AppendUnique(LIBPATH             = [os.path.join(env["irrlichtpath"]["install"], "lib")])
+examples.AppendUnique(LIBS                = ["Irrlicht"])
+
+
+if env["platform"] in ["osx", "linux"] :
+    examples.AppendUnique(CXXFLAGS        = ["-Wall", "-pipe"])
+    if env["buildtype"] == "debug" :
+        examples.AppendUnique(CXXFLAGS    = ["-g"])
+    elif env["buildtype"] == "release" :
+        examples.AppendUnique(CXXFLAGS    = ["-O3", "-ffast-math"])
+
+elif env["platform"] == "win32-msvc" :
+    examples.AppendUnique(LIBS            = ["user32.lib", "gdi32.lib", "opengl32.lib"])
+    examples.AppendUnique(CXXFLAGS        = ["/analyze-", "/errorReport:queue", "/Gd", "/Gm-", "/GR-", "/nologo", "/W3", "/WX-", "/Zc:forScope", "/Zc:wchar_t"])
+    if env["buildtype"] == "debug" :
+        examples.AppendUnique(CXXFLAGS    = ["/fp:precise", "/GS", "/MTd", "/Od", "/Oy-", "/RTC1", "/Zi"])
+    elif env["buildtype"] == "release" :
+        examples.AppendUnique(CXXFLAGS    = ["/arch:SSE2", "/fp:fast", "/GL", "/GF", "/GS-", "/Gy-", "/MT", "/Ob2", "/Oi", "/Ot", "/Ox", "/Oy"])
+        examples.AppendUnique(LINKFLAGS   = ["/SUBSYSTEM:CONSOLE", "/OPT:REF", "/LTCG"])
+    
+else :
+    raise RuntimeError("please define a build platform")
+
+
+installexamples = []
+examplesinstall = os.path.join(env["irrlichtpath"]["install"], "examples")
+
+#on a shared library the library is copy to the example directory
+if libsymlink :
+    installexamples.append(examples.Command( os.path.join(examplesinstall, os.path.basename(str(libsymlink).replace("']", "").replace("['", ""))), lib, Copy("$TARGET", "$SOURCE")))
+
+
+examplelist = ["01.HelloWorld", "02.Quake3Map", "03.CustomSceneNode", "04.Movement", "05.UserInterface", "06.2DGraphics", "07.Collision", "08.SpecialFX", "09.Meshviewer", "10.Shaders", "11.PerPixelLighting", "12.TerrainRendering", "13.RenderToTexture", "15.LoadIrrFile", "16.Quake3MapShader", "17.HelloWorld_Mobile", "18.SplitScreen", "19.MouseAndJoystick", "20.ManagedLights", "22.MaterialViewer", "23.SMeshHandling", "24.CursorControl", "25.XmlHandling", "26.OcclusionQuery"]
+if "win" in env["platform"] :
+    examplelist.append("14.Win32Window")
+for i in examplelist :
+    installexamples.append( examples.Install(  examplesinstall, examples.Program(i.replace(".", "_"), os.path.join(env["irrlichtpath"]["examples"], i, "main.cpp"))  ) )
+
+   
+NoClean(installexamples)
+Alias("examples", installexamples)
+# ===================================================================================================================
