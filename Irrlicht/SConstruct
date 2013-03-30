@@ -313,9 +313,9 @@ if "win" in env["platform"] :
 # build lib (first the object files and reference the files with the resource list - to suppress the "long command line" error message)
 obj = []
 if env["buildtarget"] == "shared" :
-	obj = envlib.SharedObject(srclibrary)
+    obj = envlib.SharedObject(srclibrary)
 elif env["buildtarget"] == "static" :
-	obj = envlib.Object(srclibrary)
+    obj = envlib.Object(srclibrary)
 
 if "win" in envlib["platform"] :
     resource = envlib["platform"] + ".res"
