@@ -20,7 +20,7 @@ def createEnvironment(IrrlichtVersion) :
     vars.Add(PathVariable("installdir", "install directory for the library", os.path.join("bin"),  PathVariable.PathIsDirCreate))
     vars.Add(EnumVariable("buildtarget", "type of the library", "shared", allowed_values=("shared", "static")))
     vars.Add(EnumVariable("buildtype", "name of target build type", "release", allowed_values=("debug", "release")))
-    vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "osx-library", "osx-framework", "win32-gcc", "win32-msvc", "win64-msvc")))
+    vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "linux", "osx-library", "osx-framework", "win32-gcc", "win32-msvc", "win64-msvc")))
 
     vars.Add(PathVariable("directxsdk", "directory of the DirectX SDK", directxdir,  PathVariable.PathAccept))
 
@@ -37,21 +37,12 @@ def createEnvironment(IrrlichtVersion) :
         env.Tool("msvs")
         env.Tool("mssdk")
         
-        
     elif env["platform"] in ["win32-gcc", "win64-gcc"] :
         env.Tool("mingw")
         
     else :
         raise SCons.Errors.StopError("platform is not set")
-    
-    # set build constants (directory names are relative to the SConstruct)
-    env["irr_libversion"]     = IrrlichtVersion
-    env["irr_libinstallname"] = "Irrlicht"
-    env["irr_srcexamples"]    = "examples"
-    env["irr_srclibrary"]     = os.path.join("source", "Irrlicht")
-    if env["buildtype"] == "debug" :
-        env["irr_libinstallname"] = env["irr_libinstallname"] + "Debug"
-    
+
     # check parameter
     if env["buildtarget"] == "static" and env["platform"] == "osx-framework" :
         raise SCons.Errors.StopError("static library can not be build with the an osx framework")
@@ -59,6 +50,23 @@ def createEnvironment(IrrlichtVersion) :
         raise SCons.Errors.StopError("debug library can not be build with the an osx framework")
     if "win" in env["platform"] and not os.path.exists(env["directxsdk"]) :
         raise SCons.Errors.StopError("Direct X SDK not found")
+        
+    # set constants and global values (directory names are relative to the SConstruct)
+    env["irr_libversion"]         = IrrlichtVersion
+    env["irr_libinstallname"]     = "Irrlicht"
+    env["irr_srcexamples"]        = "examples"
+    env["irr_srclibrary"]         = os.path.join("source", "Irrlicht")
+    if env["buildtype"] == "debug" :
+        env["irr_libinstallname"] = env["irr_libinstallname"] + "Debug"
+    
+    if "CPPPATH" in os.environ :
+        env.ApendUnique(CPPPATH   = os.environ["CPPPATH"].split(os.pathsep))
+    if "CXXFLAGS" in os.environ :
+        env.ApendUnique(CXXFLAGS  = os.environ["CXXFLAGS"].split(os.pathsep))   
+    if "LIBRARY_PATH" in os.environ :
+        env.ApendUnique(CIBPATH   = os.environ["LIBRARY_PATH"].split(os.pathsep))
+    if "LDFLAGS" in os.environ :
+        env.ApendUnique(LINKFLAGS  = os.environ["LDFLAGS"].split(os.pathsep))    
     
     return env
 
@@ -85,6 +93,19 @@ def getLibraryBuildEnvironment(env) :
         envlib.AppendUnique(CPPPATH     = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
         envlib.AppendUnique(LINKFLAGS   = ["-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
 
+        if envlib["buildtype"] == "debug" :
+            envlib.AppendUnique(CXXFLAGS    = ["-g"])
+        elif envlib["buildtype"] == "release" :
+            envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
+
+        envlib.AppendUnique(CFLAGS          = env["CXXFLAGS"])
+    
+    
+    elif envlib["platform"] == "linux" :    
+        libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + envlib["SHLIBSUFFIX"] + "." + envlib["irr_libversion"]
+
+        envlib.AppendUnique(CXXFLAGS        = ["-Wall", "-pipe"])
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,--soname="+libname])
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
@@ -142,7 +163,7 @@ def getExampleBuildEnvironment(env) :
     envexamples = env.Clone()
     
     # define platform specific data
-    if envexamples["platform"] in ["osx-library", "osx-framework", "linux"] :
+    if envexamples["platform"] in ["osx-library", "osx-framework"] :
         envexamples.AppendUnique(CXXFLAGS        = ["-Wall", "-pipe"])
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-g"])
@@ -157,6 +178,17 @@ def getExampleBuildEnvironment(env) :
             envexamples.AppendUnique(CPPPATH     = [os.path.join(env["installdir"], "include")])
             envexamples.AppendUnique(LIBPATH     = [os.path.join(env["installdir"], "lib")])
 
+
+    elif envexamples["platform"] == "linux" :
+        envexamples.AppendUnique(LIBS            = ["Irrlicht", "GL", "Xxf86vm"])
+        envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
+        envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
+        envexamples.AppendUnique(CXXFLAGS        = ["-Wall", "-pipe"])
+        if envexamples["buildtype"] == "debug" :
+            envexamples.AppendUnique(CXXFLAGS    = ["-g"])
+        elif envexamples["buildtype"] == "release" :
+            envexamples.AppendUnique(CXXFLAGS    = ["-O3", "-ffast-math"])
+    
 
     elif envexamples["platform"] in ["win32-msvc", "win64-msvc"] :
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
@@ -189,7 +221,10 @@ def installLibrary(env, lib, header) :
     
 
     if env["platform"] in ["linux", "osx-library"] :
-        versionname = libname.replace(env["SHLIBSUFFIX"], "") + "." + env["irr_libversion"] + env["SHLIBSUFFIX"]
+        if env["platform"] == "osx-library" :
+            versionname = libname.replace(env["SHLIBSUFFIX"], "") + "." + env["irr_libversion"] + env["SHLIBSUFFIX"]
+        elif env["platform"] == "linux" :
+            versionname = libname + "." + env["irr_libversion"]
         
         install.append(env.Install( os.path.join(env["installdir"], "lib"), lib ))
         for i in header :
