@@ -185,10 +185,11 @@ def installLibrary(env, lib, header) :
         for i in header :
             data.append(env.Command( os.path.join(framework, "Versions", env["irr_libversion"], "Headers", os.path.basename(str(i))), i, Copy("$TARGET", "$SOURCE")))
 
-        install.append( env.Command(os.path.join(framework, "Irrlicht"), data, "ln -s "+os.path.join("Versions", env["irr_libversion"], "Libraries", os.path.basename(libname))+" $TARGET") )
-        install.append( env.Command(os.path.join(framework, "Libraries"), data, "ln -s "+os.path.join("Versions", env["irr_libversion"], "Libraries")+" $TARGET") )
-        install.append( env.Command(os.path.join(framework, "Headers"), data, "ln -s "+os.path.join("Versions", env["irr_libversion"], "Headers")+" $TARGET") )
-        install.append( env.Command(os.path.join(framework, "Versions", "Current"), data, "ln -s "+os.path.join(env["irr_libversion"])+" $TARGET") )
+        # remove existing links and create new ones
+        install.append( env.Command(os.path.join(framework, "Irrlicht"), data, "rm -f $TARGET && ln -s "+os.path.join("Versions", env["irr_libversion"], "Libraries", os.path.basename(libname))+" $TARGET") )
+        install.append( env.Command(os.path.join(framework, "Libraries"), data, "rm -f $TARGET && ln -s "+os.path.join("Versions", env["irr_libversion"], "Libraries")+" $TARGET") )
+        install.append( env.Command(os.path.join(framework, "Headers"), data, "rm -f $TARGET && ln -s "+os.path.join("Versions", env["irr_libversion"], "Headers")+" $TARGET") )
+        install.append( env.Command(os.path.join(framework, "Versions", "Current"), data, "rm -f $TARGET && ln -s "+os.path.join(env["irr_libversion"])+" $TARGET") )
 
 
     elif "msvc" in env["platform"] :
