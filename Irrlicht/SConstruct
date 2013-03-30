@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import os
-import re
-import SCons.Action
-import SCons.Errors
+import os, re, subprocess
+import SCons.Action, SCons.Errors
 
 # https://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPFrameworks/Concepts/FrameworkAnatomy.html#//apple_ref/doc/uid/20002253-BAJEJJAB
 
@@ -24,7 +22,7 @@ def createEnvironment() :
 
     vars.Add(PathVariable("directxsdk", "directory of the DirectX SDK", directxdir,  PathVariable.PathAccept))
 
-    # set the correct build toolkit
+    # set the correct build toolkit (and a own process spawn)
     env = Environment(tools = [], variables=vars)
     Help(vars.GenerateHelpText(env))
     
@@ -104,8 +102,6 @@ def getLibraryBuildEnvironment(env) :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
-
-        envlib.AppendUnique(CFLAGS          = env["CXXFLAGS"])
     
     
     elif envlib["platform"] == "linux" :    
@@ -117,20 +113,19 @@ def getLibraryBuildEnvironment(env) :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
-
-        envlib.AppendUnique(CFLAGS          = env["CXXFLAGS"])
         
     
     elif envlib["platform"] in ["win32-gcc", "win64-gcc"] :
+        # we need the kill-at flag, because the MSVC & g++ name mangeling are different, so we disable it http://en.wikipedia.org/wiki/Name_mangling
+        envlib.AppendUnique(LINKFLAGS   = ["-Wl,--kill-at"])
         envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-pipe"])
         envlib.AppendUnique(CPPDEFINES  = ["__GNUWIN32__", "WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_WINDLL", "_MBCS"])
+        envlib.AppendUnique(LIBS        = ["opengl32", "gdi32", "stdc++", "winmm"])
         
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
-
-        envlib.AppendUnique(CFLAGS          = env["CXXFLAGS"])
         
 
     elif envlib["platform"] in ["win32-msvc", "win64-msvc"] :
@@ -141,7 +136,7 @@ def getLibraryBuildEnvironment(env) :
         envlib.AppendUnique(CXXFLAGS    = ["/analyze-", "/errorReport:queue", "/Gd", "/Gm-", "/GR-", "/nologo", "/W3", "/WX-", "/Zc:forScope", "/Zc:wchar_t"])
         envlib.AppendUnique(CPPPATH     = [os.path.join(envlib["directxsdk"], "Include")])
         envlib.AppendUnique(LINKFLAGS   = ["/VERSION:\""+envlib["irr_libversion"]+"\"", "/INCREMENTAL:NO", "/NOLOGO", "/NODEFAULTLIB:\"libci.lib\"", "/MANIFEST:NO", "/TLBID:1", "/DYNAMICBASE", "/ERRORREPORT:QUEUE"])
-        envlib.AppendUnique(LIBS        = ["opengl32.lib", "user32.lib", "advapi32.lib", "gdi32.lib"])
+        envlib.AppendUnique(LIBS        = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib", "d3dx9.lib"])
 
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CPPDEFINES  = ["_ITERATOR_DEBUG_LEVEL=0"])
@@ -196,7 +191,18 @@ def getExampleBuildEnvironment(env) :
         elif envexamples["buildtype"] == "release" :
             envexamples.AppendUnique(CXXFLAGS    = ["-O3", "-ffast-math"])
     
-
+    
+    elif envexamples["platform"] in ["win32-gcc", "win64-gcc"] :
+        envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
+        envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
+        envexamples.AppendUnique(LIBS            = ["Irrlicht", "gdi32", "opengl32"])
+        envexamples.AppendUnique(CXXFLAGS        = ["-Wall", "-pipe"])
+        if envexamples["buildtype"] == "debug" :
+            envexamples.AppendUnique(CXXFLAGS    = ["-g"])
+        elif envexamples["buildtype"] == "release" :
+            envexamples.AppendUnique(CXXFLAGS    = ["-O3", "-ffast-math"])
+        
+    
     elif envexamples["platform"] in ["win32-msvc", "win64-msvc"] :
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
@@ -263,6 +269,8 @@ def installLibrary(env, lib, header) :
 
     NoClean(install)
     Default(install)
+    Clean(install, [env["platform"]+".res"])
+    
 # ===================================================================================================================
 
 
@@ -300,16 +308,32 @@ if "win" in env["platform"] :
 
 
 # === build and install =============================================================================================
-# build lib
-if env["buildtarget"] == "shared" :
-    lib = envlib.SharedLibrary(env["irr_libinstallname"], srclibrary)
-elif env["buildtarget"] == "static" :
-    lib = envlib.StaticLibrary(env["irr_libinstallname"], srclibrary)
+# build lib (first the object files and reference the files with the resource list - to suppress the "long command line" error message)
+obj = envlib.Object(srclibrary)
+if "win" in envlib["platform"] :
+    resource = envlib["platform"] + ".res"
+    with open(resource, "w") as f:
+        for obj_name in obj:
+            f.write ('%s\n' %os.path.abspath(str(obj_name)).replace("\\", "/"))    
+    envlib.AppendUnique(LINKFLAGS = ["@"+resource])
+    if env["buildtarget"] == "shared" :
+        lib = envlib.SharedLibrary(env["irr_libinstallname"], [])
+    elif env["buildtarget"] == "static" :
+        lib = envlib.StaticLibrary(env["irr_libinstallname"], [])
+    Depends(lib, obj)
+    
+else :
+    if env["buildtarget"] == "shared" :
+        lib = envlib.SharedLibrary(env["irr_libinstallname"], obj)
+    elif env["buildtarget"] == "static" :
+        lib = envlib.StaticLibrary(env["irr_libinstallname"], obj)
+
+    
 
 # build examples
 examples = []
 for i in srcexamples :
-    examples.append( envexamples.Program( os.path.join("bin", "examples", i.replace(".", "_")), os.path.join(env["irr_srcexamples"], i, "main.cpp")) )
+    examples.append( envexamples.Program( os.path.join("bin", "examples-"+envlib["platform"], i.replace(".", "_")), os.path.join(env["irr_srcexamples"], i, "main.cpp")) )
 
 
 installLibrary(env, lib, headers)
