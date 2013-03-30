@@ -46,8 +46,8 @@ def createEnvironment() :
         raise SCons.Errors.StopError("static library can not be build with the an osx framework")
     if env["buildtype"] == "debug" and env["platform"] == "osx-framework" :
         raise SCons.Errors.StopError("debug library can not be build with the an osx framework")
-    if "win" in env["platform"] and not os.path.exists(env["directxsdk"]) :
-        raise SCons.Errors.StopError("Direct X SDK not found")
+    if not os.path.exists(env["directxsdk"]) and "msvc" in env["platform"] :
+        raise SCons.Errors.StopError("Direct X SDK is not found")
         
     # set constants and global values (directory names are relative to the SConstruct)
     # read first Irrlicht SDK version from the file include/IrrCompileConfig.h
@@ -129,15 +129,12 @@ def getLibraryBuildEnvironment(env) :
         
 
     elif envlib["platform"] in ["win32-msvc", "win64-msvc"] :
-        if not os.path.exists(envlib["directxsdk"]) :
-            raise RuntimeError("Direct X SDK directory not exists")
-
         envlib.AppendUnique(CPPDEFINES  = ["WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_CRT_SECURE_NO_DEPRECATE", "_WINDLL", "_MBCS"])
         envlib.AppendUnique(CXXFLAGS    = ["/analyze-", "/errorReport:queue", "/Gd", "/Gm-", "/GR-", "/nologo", "/W3", "/WX-", "/Zc:forScope", "/Zc:wchar_t"])
-        envlib.AppendUnique(CPPPATH     = [os.path.join(envlib["directxsdk"], "Include")])
         envlib.AppendUnique(LINKFLAGS   = ["/VERSION:\""+envlib["irr_libversion"]+"\"", "/INCREMENTAL:NO", "/NOLOGO", "/NODEFAULTLIB:\"libci.lib\"", "/MANIFEST:NO", "/TLBID:1", "/DYNAMICBASE", "/ERRORREPORT:QUEUE"])
+        envlib.AppendUnique(CPPPATH = [os.path.join(envlib["directxsdk"], "Include")])
         envlib.AppendUnique(LIBS        = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib", "d3dx9.lib"])
-
+        
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CPPDEFINES  = ["_ITERATOR_DEBUG_LEVEL=0"])
             envlib.AppendUnique(CXXFLAGS    = ["/fp:precise", "/GS", "/MTd", "/Od", "/Oy-", "/RTC1", "/Zi"])
@@ -148,11 +145,12 @@ def getLibraryBuildEnvironment(env) :
         
         if "win32" in envlib["platform"] :
             envlib.AppendUnique(LINKFLAGS   = ["/MACHINE:X86"])
-            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x86")]) 
+            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x86")])
         elif "win64" in envlib["platform"] :
-            envlib.AppendUnique(LINKFLAGS   = ["/MACHINE:X64"])
-            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x84")]) 
-    
+            envlib.AppendUnique(LINKFLAGS   = ["/MACHINE:X64"]) 
+            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x84")])
+
+            
     
     return envlib
     
@@ -206,7 +204,7 @@ def getExampleBuildEnvironment(env) :
     elif envexamples["platform"] in ["win32-msvc", "win64-msvc"] :
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
-        envexamples.AppendUnique(LIBS            = ["user32.lib", "gdi32.lib", "opengl32.lib"])
+        envexamples.AppendUnique(LIBS            = ["Irrlicht.lib", "user32.lib", "gdi32.lib", "opengl32.lib"])
         envexamples.AppendUnique(CXXFLAGS        = ["/analyze-", "/errorReport:queue", "/Gd", "/Gm-", "/GR-", "/nologo", "/W3", "/WX-", "/Zc:forScope", "/Zc:wchar_t"])
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["/fp:precise", "/GS", "/MTd", "/Od", "/Oy-", "/RTC1", "/Zi"])
