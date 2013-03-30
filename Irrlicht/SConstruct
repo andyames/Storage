@@ -311,12 +311,18 @@ if "win" in env["platform"] :
 
 # === build and install =============================================================================================
 # build lib (first the object files and reference the files with the resource list - to suppress the "long command line" error message)
+obj = []
+if env["buildtarget"] == "shared" :
+	obj = envlib.SharedObject(srclibrary)
+elif env["buildtarget"] == "static" :
+	obj = envlib.Object(srclibrary)
+
 if "win" in envlib["platform"] :
-    obj = envlib.Object(srclibrary)
     resource = envlib["platform"] + ".res"
     with open(resource, "w") as f:
         for obj_name in obj:
             f.write ('%s\n' %os.path.abspath(str(obj_name)).replace("\\", "/"))    
+    
     envlib.AppendUnique(LINKFLAGS = ["@"+resource])
     if env["buildtarget"] == "shared" :
         lib = envlib.SharedLibrary(env["irr_libinstallname"], [])
@@ -326,9 +332,9 @@ if "win" in envlib["platform"] :
     
 else :
     if env["buildtarget"] == "shared" :
-        lib = envlib.SharedLibrary(env["irr_libinstallname"], srclibrary)
+        lib = envlib.SharedLibrary(env["irr_libinstallname"], obj)
     elif env["buildtarget"] == "static" :
-        lib = envlib.StaticLibrary(env["irr_libinstallname"], srclibrary)
+        lib = envlib.StaticLibrary(env["irr_libinstallname"], obj)
 
     
 
