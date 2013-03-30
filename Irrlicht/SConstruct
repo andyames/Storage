@@ -20,18 +20,26 @@ def createEnvironment(IrrlichtVersion) :
     vars.Add(PathVariable("installdir", "install directory for the library", os.path.join("bin"),  PathVariable.PathIsDirCreate))
     vars.Add(EnumVariable("buildtarget", "type of the library", "shared", allowed_values=("shared", "static")))
     vars.Add(EnumVariable("buildtype", "name of target build type", "release", allowed_values=("debug", "release")))
-    vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "osx-library", "osx-framework", "win32-msvc", "win64-msvc")))
+    vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "osx-library", "osx-framework", "win32-gcc", "win32-msvc", "win64-msvc")))
 
     vars.Add(PathVariable("directxsdk", "directory of the DirectX SDK", directxdir,  PathVariable.PathAccept))
 
-
+    # set the correct build toolkit
     env = Environment(tools = [], variables=vars)
     Help(vars.GenerateHelpText(env))
     
-    
-    # set the correct build toolkit
-    if env["platform"] in ["linux", "osx-library", "osx-framework", "win32-msvc", "win64-mvc"] :
+    if env["platform"] in ["linux", "osx-library", "osx-framework"] :
         env.Tool("default")
+        
+    elif env["platform"] in ["win32-msvc", "win64-mvc"] :
+        env.Tool("msvc")
+        env.Tool("mslink")
+        env.Tool("msvs")
+        env.Tool("mssdk")
+        
+        
+    elif env["platform"] in ["win32-gcc", "win64-gcc"] :
+        env.Tool("mingw")
         
     else :
         raise SCons.Errors.StopError("platform is not set")
@@ -66,6 +74,8 @@ def getLibraryBuildEnvironment(env) :
     envlib.AppendUnique(CPPPATH         = ["include", envlib["irr_srclibrary"], os.path.join(envlib["irr_srclibrary"], "zlib"), os.path.join(envlib["irr_srclibrary"], "jpeglib"), os.path.join(envlib["irr_srclibrary"], "libpng")])
     if envlib["buildtype"] == "debug" :
         envlib.AppendUnique(CPPDEFINES  = ["_DEBUG"])
+    if envlib["buildtype"] == "release" :
+        envlib.AppendUnique(CPPDEFINES  = ["NDEBUG"])
     
     # define platform specific options
     if envlib["platform"] in ["osx-library", "osx-framework"] :
@@ -81,9 +91,21 @@ def getLibraryBuildEnvironment(env) :
             envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
 
         envlib.AppendUnique(CFLAGS          = env["CXXFLAGS"])
+        
+    
+    elif envlib["platform"] in ["win32-gcc", "win64-gcc"] :
+        envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-pipe"])
+        envlib.AppendUnique(CPPDEFINES  = ["__GNUWIN32__", "WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_WINDLL", "_MBCS"])
+        
+        if envlib["buildtype"] == "debug" :
+            envlib.AppendUnique(CXXFLAGS    = ["-g"])
+        elif envlib["buildtype"] == "release" :
+            envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
 
+        envlib.AppendUnique(CFLAGS          = env["CXXFLAGS"])
+        
 
-    elif "msvc" in envlib["platform"] :
+    elif envlib["platform"] in ["win32-msvc", "win64-msvc"] :
         if not os.path.exists(envlib["directxsdk"]) :
             raise RuntimeError("Direct X SDK directory not exists")
 
@@ -98,7 +120,6 @@ def getLibraryBuildEnvironment(env) :
             envlib.AppendUnique(CXXFLAGS    = ["/fp:precise", "/GS", "/MTd", "/Od", "/Oy-", "/RTC1", "/Zi"])
             envlib.AppendUnique(LINKFLAGS   = ["/DEBUG"])
         elif envlib["buildtype"] == "release" :
-            envlib.AppendUnique(CPPDEFINES  = ["NDEBUG"])
             envlib.AppendUnique(CXXFLAGS    = ["/arch:SSE2", "/fp:fast", "/GL", "/GF", "/GS-", "/Gy-", "/MT", "/Ob2", "/Oi", "/Ot", "/Ox", "/Oy"])
             envlib.AppendUnique(LINKFLAGS   = ["/SUBSYSTEM:WINDOWS", "/OPT:REF", "/LTCG"])
         
@@ -137,7 +158,7 @@ def getExampleBuildEnvironment(env) :
             envexamples.AppendUnique(LIBPATH     = [os.path.join(env["installdir"], "lib")])
 
 
-    elif "msvc" in envexamples["platform"] :
+    elif envexamples["platform"] in ["win32-msvc", "win64-msvc"] :
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
         envexamples.AppendUnique(LIBS            = ["user32.lib", "gdi32.lib", "opengl32.lib"])
@@ -167,7 +188,7 @@ def installLibrary(env, lib, header) :
     libname = str(lib).replace("']", "").replace("['", "")
     
 
-    if env["platform"] == "osx-library" :
+    if env["platform"] in ["linux", "osx-library"] :
         versionname = libname.replace(env["SHLIBSUFFIX"], "") + "." + env["irr_libversion"] + env["SHLIBSUFFIX"]
         
         install.append(env.Install( os.path.join(env["installdir"], "lib"), lib ))
@@ -192,7 +213,7 @@ def installLibrary(env, lib, header) :
         install.append( env.Command(os.path.join(framework, "Versions", "Current"), data, "rm -f $TARGET && ln -s "+os.path.join(env["irr_libversion"])+" $TARGET") )
 
 
-    elif "msvc" in env["platform"] :
+    elif env["platform"] in ["win32-gcc", "win64-gcc", "win32-msvc", "win64-msvc"] :
         install.append(env.Install( os.path.join(env["installdir"], "lib"), lib ))
         for i in header :
             install.append(env.Command( os.path.join(env["installdir"], "include", os.path.basename(str(i))), i, Copy("$TARGET", "$SOURCE")))
