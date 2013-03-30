@@ -102,6 +102,8 @@ def getLibraryBuildEnvironment(env) :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
+            
+        envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
     
     
     elif envlib["platform"] == "linux" :    
@@ -113,6 +115,8 @@ def getLibraryBuildEnvironment(env) :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
+            
+        envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])  
         
     
     elif envlib["platform"] in ["win32-gcc", "win64-gcc"] :
