@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import SCons.Action
 import SCons.Errors
 
@@ -9,9 +10,8 @@ import SCons.Errors
 # === function for build environment object =========================================================================
 
 # creates the global build object
-# @param IrrlichtVersion string with Irrlicht version
 # @return build object
-def createEnvironment(IrrlichtVersion) :
+def createEnvironment() :
     directxdir = ""
     if "DXSDK_DIR" in os.environ :
         directxdir = os.environ["DXSDK_DIR"]
@@ -52,7 +52,14 @@ def createEnvironment(IrrlichtVersion) :
         raise SCons.Errors.StopError("Direct X SDK not found")
         
     # set constants and global values (directory names are relative to the SConstruct)
-    env["irr_libversion"]         = IrrlichtVersion
+    # read first Irrlicht SDK version from the file include/IrrCompileConfig.h
+    configfile = open( os.path.join("include", "IrrCompileConfig.h"), "r" )
+    irrlichtversion = re.search("#define(.*)IRRLICHT_SDK_VERSION(.*)", configfile.read())
+    configfile.close()
+    if irrlichtversion == None :
+        raise SCons.Errors.StopError("can not find Irrlicht SDK version in the configuration header")
+    
+    env["irr_libversion"]         = irrlichtversion.group(2).replace("\"", "").strip()
     env["irr_libinstallname"]     = "Irrlicht"
     env["irr_srcexamples"]        = "examples"
     env["irr_srclibrary"]         = os.path.join("source", "Irrlicht")
@@ -265,7 +272,7 @@ def installLibrary(env, lib, header) :
 
 # ===================================================================================================================
 # === create build commands =========================================================================================
-env         = createEnvironment("1.8.0")
+env         = createEnvironment()
 envlib      = getLibraryBuildEnvironment(env)
 envexamples = getExampleBuildEnvironment(env)
 
