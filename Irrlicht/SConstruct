@@ -84,28 +84,27 @@ def getLibraryBuildEnvironment(env) :
     envlib = env.Clone()
     
     # define global options
-    envlib.AppendUnique(CPPPATH         = ["include", envlib["irr_srclibrary"], os.path.join(envlib["irr_srclibrary"], "zlib"), os.path.join(envlib["irr_srclibrary"], "jpeglib"), os.path.join(envlib["irr_srclibrary"], "libpng")])
+    envlib.AppendUnique(CPPPATH             = ["include", envlib["irr_srclibrary"], os.path.join(envlib["irr_srclibrary"], "zlib"), os.path.join(envlib["irr_srclibrary"], "jpeglib"), os.path.join(envlib["irr_srclibrary"], "libpng")])
+    envlib.AppendUnique(CPPDEFINES          = ["PNG_THREAD_UNSAFE_OK", "PNG_NO_MMX_CODE", "PNG_NO_MNG_FEATURES"])
     if envlib["buildtype"] == "debug" :
-        envlib.AppendUnique(CPPDEFINES  = ["_DEBUG"])
-    if envlib["buildtype"] == "release" :
-        envlib.AppendUnique(CPPDEFINES  = ["NDEBUG"])
+        envlib.AppendUnique(CPPDEFINES      = ["_DEBUG"])
     
     # define platform specific options
     if envlib["platform"] in ["osx-library", "osx-framework"] :
         libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + "." + envlib["irr_libversion"] + envlib["SHLIBSUFFIX"]
         
-        envlib.AppendUnique(CPPDEFINES  = ["MACOSX"])
-        envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-pipe"])
-        envlib.AppendUnique(CPPPATH     = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
-        envlib.AppendUnique(LINKFLAGS   = ["-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
+        envlib.AppendUnique(CPPDEFINES      = ["MACOSX"])
+        envlib.AppendUnique(CXXFLAGS        = ["-Wall", "-pipe"])
+        envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
 
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
-            envlib.AppendUnique(CXXFLAGS    = ["-O3"])
+            envlib.AppendUnique(CXXFLAGS    = ["-O3", "-fexpensive-optimizations"])
 
         envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
-    
+
     
     elif envlib["platform"] == "linux" :    
         libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + envlib["SHLIBSUFFIX"] + "." + envlib["irr_libversion"]
@@ -115,30 +114,33 @@ def getLibraryBuildEnvironment(env) :
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
-            envlib.AppendUnique(CXXFLAGS    = ["-O3"])
+            envlib.AppendUnique(CXXFLAGS    = ["-O3", "-fexpensive-optimizations"])
             
-        envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])  
+        envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
+        envlib.AppendUnique(CXXFLAGS        = ["-fno-rtti"])  
         
     
     elif envlib["platform"] in ["win32-gcc", "win64-gcc"] :
         # we need the kill-at flag, because the MSVC & g++ name mangeling are different, so we disable it http://en.wikipedia.org/wiki/Name_mangling
-        envlib.AppendUnique(LINKFLAGS   = ["-Wl,--kill-at"])
-        envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-pipe"])
-        envlib.AppendUnique(CPPDEFINES  = ["__GNUWIN32__", "WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_WINDLL", "_MBCS"])
-        envlib.AppendUnique(LIBS        = ["opengl32", "gdi32", "stdc++", "winmm"])
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,--kill-at"])
+        envlib.AppendUnique(CXXFLAGS        = ["-Wall", "-pipe"])
+        envlib.AppendUnique(CPPDEFINES      = ["__GNUWIN32__", "WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_WINDLL", "_MBCS"])
+        envlib.AppendUnique(LIBS            = ["opengl32", "gdi32", "stdc++", "winmm"])
         
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
-            envlib.AppendUnique(CXXFLAGS    = ["-O3"])
+            envlib.AppendUnique(CXXFLAGS    = ["-O3", "-fexpensive-optimizations"])
+
+        envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
         
 
     elif envlib["platform"] in ["win32-msvc", "win64-msvc"] :
-        envlib.AppendUnique(CPPDEFINES  = ["WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_CRT_SECURE_NO_DEPRECATE", "_WINDLL", "_MBCS"])
-        envlib.AppendUnique(CXXFLAGS    = ["/analyze-", "/errorReport:queue", "/Gd", "/Gm-", "/GR-", "/nologo", "/W3", "/WX-", "/Zc:forScope", "/Zc:wchar_t"])
-        envlib.AppendUnique(LINKFLAGS   = ["/VERSION:\""+envlib["irr_libversion"]+"\"", "/INCREMENTAL:NO", "/NOLOGO", "/NODEFAULTLIB:\"libci.lib\"", "/MANIFEST:NO", "/TLBID:1", "/DYNAMICBASE", "/ERRORREPORT:QUEUE"])
-        envlib.AppendUnique(CPPPATH = [os.path.join(envlib["directxsdk"], "Include")])
-        envlib.AppendUnique(LIBS        = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib", "d3dx9.lib"])
+        envlib.AppendUnique(CPPDEFINES      = ["WIN32", "_WINDOWS", "_USRDLL", "IRRLICHT_EXPORTS", "_CRT_SECURE_NO_DEPRECATE", "_WINDLL", "_MBCS"])
+        envlib.AppendUnique(CXXFLAGS        = ["/analyze-", "/errorReport:queue", "/Gd", "/Gm-", "/GR-", "/nologo", "/W3", "/WX-", "/Zc:forScope", "/Zc:wchar_t"])
+        envlib.AppendUnique(LINKFLAGS       = ["/VERSION:\""+envlib["irr_libversion"]+"\"", "/INCREMENTAL:NO", "/NOLOGO", "/NODEFAULTLIB:\"libci.lib\"", "/MANIFEST:NO", "/TLBID:1", "/DYNAMICBASE", "/ERRORREPORT:QUEUE"])
+        envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["directxsdk"], "Include")])
+        envlib.AppendUnique(LIBS            = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib", "d3dx9.lib"])
         
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CPPDEFINES  = ["_ITERATOR_DEBUG_LEVEL=0"])
@@ -218,9 +220,9 @@ def getExampleBuildEnvironment(env) :
             envexamples.AppendUnique(LINKFLAGS   = ["/SUBSYSTEM:CONSOLE", "/OPT:REF", "/LTCG"])
         
         if "win32" in envlib["platform"] :
-            envlib.AppendUnique(LINKFLAGS   = ["/MACHINE:X86"])
+            envlib.AppendUnique(LINKFLAGS        = ["/MACHINE:X86"])
         elif "win64" in envlib["platform"] :
-            envlib.AppendUnique(LINKFLAGS   = ["/MACHINE:X64"])
+            envlib.AppendUnique(LINKFLAGS        = ["/MACHINE:X64"])
     
     return envexamples
 
