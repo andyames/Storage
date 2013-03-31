@@ -67,11 +67,11 @@ def createEnvironment() :
     if "CPPPATH" in os.environ :
         env.AppendUnique(CPPPATH  = os.environ["CPPPATH"].split(os.pathsep))
     if "CXXFLAGS" in os.environ :
-        env.AppendUnique(CXXFLAGS = os.environ["CXXFLAGS"].split(os.pathsep))   
+        env.AppendUnique(CXXFLAGS = os.environ["CXXFLAGS"].split(" "))   
     if "LIBRARY_PATH" in os.environ :
         env.AppendUnique(CIBPATH  = os.environ["LIBRARY_PATH"].split(os.pathsep))
     if "LDFLAGS" in os.environ :
-        env.AppendUnique(LINKFLAGS = os.environ["LDFLAGS"].split(os.pathsep))    
+        env.AppendUnique(LINKFLAGS = os.environ["LDFLAGS"].split(" "))    
     
     return env
 
@@ -94,6 +94,7 @@ def getLibraryBuildEnvironment(env) :
     if envlib["platform"] in ["osx-library", "osx-framework"] :
         libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + "." + envlib["irr_libversion"] + envlib["SHLIBSUFFIX"]
         
+        envlib.AppendUnique(CPPDEFINES  = ["MACOSX"])
         envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-pipe"])
         envlib.AppendUnique(CPPPATH     = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
         envlib.AppendUnique(LINKFLAGS   = ["-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
@@ -101,8 +102,8 @@ def getLibraryBuildEnvironment(env) :
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
-            envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
-            
+            envlib.AppendUnique(CXXFLAGS    = ["-O3"])
+
         envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
     
     
@@ -114,7 +115,7 @@ def getLibraryBuildEnvironment(env) :
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
-            envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
+            envlib.AppendUnique(CXXFLAGS    = ["-O3"])
             
         envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])  
         
@@ -129,7 +130,7 @@ def getLibraryBuildEnvironment(env) :
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
         elif envlib["buildtype"] == "release" :
-            envlib.AppendUnique(CXXFLAGS    = ["-fexpensive-optimizations", "-O3"])
+            envlib.AppendUnique(CXXFLAGS    = ["-O3"])
         
 
     elif envlib["platform"] in ["win32-msvc", "win64-msvc"] :
@@ -172,7 +173,7 @@ def getExampleBuildEnvironment(env) :
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-g"])
         elif envexamples["buildtype"] == "release" :
-            envexamples.AppendUnique(CXXFLAGS    = ["-O3", "-ffast-math"])
+            envexamples.AppendUnique(CXXFLAGS    = ["-O3"])
     
         if envexamples["platform"] == "osx-framework" :
             envexamples.AppendUnique(CPPPATH     = [os.path.join(env["installdir"], "Irrlicht.framework", "Headers")])
@@ -191,7 +192,7 @@ def getExampleBuildEnvironment(env) :
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-g"])
         elif envexamples["buildtype"] == "release" :
-            envexamples.AppendUnique(CXXFLAGS    = ["-O3", "-ffast-math"])
+            envexamples.AppendUnique(CXXFLAGS    = ["-O3"])
     
     
     elif envexamples["platform"] in ["win32-gcc", "win64-gcc"] :
@@ -202,7 +203,7 @@ def getExampleBuildEnvironment(env) :
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-g"])
         elif envexamples["buildtype"] == "release" :
-            envexamples.AppendUnique(CXXFLAGS    = ["-O3", "-ffast-math"])
+            envexamples.AppendUnique(CXXFLAGS    = ["-O3"])
         
     
     elif envexamples["platform"] in ["win32-msvc", "win64-msvc"] :
@@ -321,7 +322,7 @@ if "win" in envlib["platform"] :
     resource = envlib["platform"] + ".res"
     with open(resource, "w") as f:
         for obj_name in obj:
-            f.write ('%s\n' %os.path.abspath(str(obj_name)).replace("\\", "/"))    
+            f.write ("%s\n" %os.path.abspath(str(obj_name)).replace("\\", "/"))    
     
     envlib.AppendUnique(LINKFLAGS = ["@"+resource])
     if env["buildtarget"] == "shared" :
