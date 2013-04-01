@@ -107,7 +107,7 @@ def getLibraryBuildEnvironment(env) :
         libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + "." + envlib["irr_libversion"] + envlib["SHLIBSUFFIX"]
         
         envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
-        envlib.AppendUnique(LINKFLAGS       = ["--no-export-all-symbols", "--add-stdcall-alias", "-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
 
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
@@ -120,7 +120,7 @@ def getLibraryBuildEnvironment(env) :
     elif envlib["platform"] == "linux" :    
         libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + envlib["SHLIBSUFFIX"] + "." + envlib["irr_libversion"]
 
-        envlib.AppendUnique(LINKFLAGS       = ["--add-stdcall-alias", "-Wl,--soname="+libname])
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,--soname="+libname])
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
         elif envlib["buildtype"] == "release" :
