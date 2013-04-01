@@ -147,8 +147,8 @@ def getLibraryBuildEnvironment(env) :
         
 
     elif envlib["platform"] in ["win32-msvc", "win64-msvc"] :
-        envlib.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GR-"])
-        envlib.AppendUnique(LINKFLAGS       = ["/GF", "/GS", "/Gy", "/VERSION:\""+envlib["irr_libversion"]+"\"", "/nologo", "/Zl"])
+        envlib.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GF", "/GR-", "/GS", "/Gy", "/Zl"])
+        envlib.AppendUnique(LINKFLAGS       = ["/VERSION:\""+envlib["irr_libversion"]+"\"", "/nologo"])
         envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["directxsdk"], "Include")])
         envlib.AppendUnique(LIBS            = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib", "d3dx9.lib"])
         
@@ -217,8 +217,8 @@ def getExampleBuildEnvironment(env) :
     elif envexamples["platform"] in ["win32-msvc", "win64-msvc"] :
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
-        envexamples.AppendUnique(LINKFLAGS       = ["/GF", "/GS", "/Gy", "/nologo", "/Zl"])
-        envexamples.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GR-"])
+        envexamples.AppendUnique(LINKFLAGS       = ["/nologo"])
+        envexamples.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GF", "/GR-", "/GS", "/Gy", "/Zl"])
         envexamples.AppendUnique(LIBS            = ["Irrlicht.lib", "user32.lib", "gdi32.lib", "opengl32.lib"])
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-Wall", "/MTd", "/RTC1", "/Zi"])
