@@ -71,6 +71,7 @@ def createEnvironment() :
     
     env["irr_libversion"]         = irrlichtversion.group(2).replace("\"", "").strip()
     env["irr_libinstallname"]     = "Irrlicht"
+    env["irr_osxframeworkname"]   = env["irr_libinstallname"]
     env["irr_srcexamples"]        = "examples"
     env["irr_srclibrary"]         = os.path.join("source", "Irrlicht")
     if env["buildtype"] == "debug" :
@@ -131,14 +132,14 @@ def getLibraryBuildEnvironment(env) :
         
     
     elif envlib["platform"] in ["win32-mingw", "win64-mingw"] :
-        envlib["SHLINKCOM"]                 = "$SHLINK -o $TARGET $SHLINKFLAGS ${ResourceFile(__env__, SOURCES.abspath)}"
-        envlib["LINKCOM"]                   = "$LINK -o $TARGET $LINKFLAGS $__RPATH ${ResourceFile(__env__, SOURCES.abspath)} $_LIBDIRFLAGS $_LIBFLAGS"
+        # for suppress the too-long-line error, we use a temporary file on the linker source list
+        envlib["SHLINKCOM"]                 = "$SHLINK -o $TARGET $SHLINKFLAGS ${ResourceFile(__env__, SOURCES.abspath)} $_LIBDIRFLAGS $_LIBFLAGS"
         envlib["ARCOM"]                     = "$AR $ARFLAGS $TARGET ${ResourceFile(__env__, SOURCES.abspath)}"
-        
-        # we need the kill-at flag, because the MSVC & g++ name mangeling are different, so we disable it http://en.wikipedia.org/wiki/Name_mangling
-        envlib.AppendUnique(LINKFLAGS       = ["-Wl,--add-stdcall-alias", "-Wl,--kill-at"])
+
+        # on MinGW we create a DLL, which can be used by other toolchains (we need the std-alias, the kill-flag and the out-implib option)
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,--add-stdcall-alias", "-Wl,--kill-at", "-Wl,--out-implib,"+envlib["LIBPREFIX"]+env["irr_libinstallname"]+envlib["LIBSUFFIX"]])
         envlib.AppendUnique(CXXFLAGS        = ["-Wall"])
-        envlib.AppendUnique(LIBS            = ["opengl32", "gdi32", "stdc++", "winmm"])
+        envlib.AppendUnique(LIBS            = ["opengl32", "gdi32", "winmm"])       
         
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-g"])
@@ -264,7 +265,7 @@ def installLibrary(env, lib, header) :
 
 
     elif env["platform"] == "osx-framework" :
-        framework = os.path.join(env["installdir"], "Irrlicht.framework")
+        framework = os.path.join(env["installdir"], env["irr_osxframeworkname"]+".framework")
 
         data = []
         data.append(env.Install( os.path.join(framework, "Versions", env["irr_libversion"], "Libraries"), lib ))
@@ -325,23 +326,6 @@ if "win" in env["platform"] :
 
 
 # === build and install =============================================================================================
-# build lib (first the object files and reference the files with the resource list - to suppress the "long command line" error message)
-#obj = []
-#if env["buildtarget"] == "shared" :
-#    obj = envlib.SharedObject(srclibrary)
-#elif env["buildtarget"] == "static" :
-#    obj = envlib.Object(srclibrary)
-
-#if "win" in envlib["platform"] :
-
-
- #   if env["buildtarget"] == "shared" :
- #       lib = envlib.SharedLibrary(env["irr_libinstallname"], [])
- #   elif env["buildtarget"] == "static" :
-  #      lib = envlib.StaticLibrary(env["irr_libinstallname"], [])
-  #  Depends(lib, obj)
-    
-#else :
 if env["buildtarget"] == "shared" :
     lib = envlib.SharedLibrary(env["irr_libinstallname"], srclibrary)
 elif env["buildtarget"] == "static" :
