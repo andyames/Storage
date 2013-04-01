@@ -218,7 +218,7 @@ def getExampleBuildEnvironment(env) :
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
         envexamples.AppendUnique(LINKFLAGS       = ["/nologo"])
-        envexamples.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GF", "/GR-", "/GS", "/Gy", "/Zl"])
+        envexamples.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GF", "/GR-", "/GS", "/Gy"])
         envexamples.AppendUnique(LIBS            = ["Irrlicht.lib", "user32.lib", "gdi32.lib", "opengl32.lib"])
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-Wall", "/MTd", "/RTC1", "/Zi"])
