@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os, re, subprocess
+import os, re, subprocess, tempfile
 import SCons.Action, SCons.Errors
 
 # https://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPFrameworks/Concepts/FrameworkAnatomy.html#//apple_ref/doc/uid/20002253-BAJEJJAB
@@ -320,12 +320,12 @@ elif env["buildtarget"] == "static" :
     obj = envlib.Object(srclibrary)
 
 if "win" in envlib["platform"] :
-    resource = envlib["platform"] + ".res"
-    with open(resource, "w") as f:
-        for obj_name in obj:
-            f.write ("%s\n" %os.path.abspath(str(obj_name)).replace("\\", "/"))    
-    
-    envlib.AppendUnique(LINKFLAGS = ["@"+resource])
+	(fd, resource) = tempfile.mkstemp(".res", text=True)
+    for obj_name in obj:
+		fd.write ("%s\n" % os.path.abspath(str(obj_name)).replace("\\", "/"))    
+    os.close(fd)
+    envlib.AppendUnique(LINKFLAGS = [env["TEMPFILEPREFIX"]+resource])
+
     if env["buildtarget"] == "shared" :
         lib = envlib.SharedLibrary(env["irr_libinstallname"], [])
     elif env["buildtarget"] == "static" :
