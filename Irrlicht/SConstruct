@@ -80,9 +80,13 @@ def createEnvironment() :
             
     # set constants and global values (directory names are relative to the SConstruct)
     # read first Irrlicht SDK version from the file include/IrrCompileConfig.h
-    configfile = open( os.path.join("include", "IrrCompileConfig.h"), "r" )
-    irrlichtversion = re.search("#define(.*)IRRLICHT_SDK_VERSION(.*)", configfile.read())
-    configfile.close()
+    irrlichtversion = None
+    try :
+        configfile = open( os.path.join("include", "IrrCompileConfig.h"), "r" )
+        irrlichtversion = re.search("#define(.*)IRRLICHT_SDK_VERSION(.*)", configfile.read())
+        configfile.close()
+    except :
+	    pass
     if irrlichtversion == None :
         raise SCons.Errors.StopError("can not find Irrlicht SDK version in the configuration header")
     
@@ -215,19 +219,24 @@ def getExampleBuildEnvironment(env) :
             envexamples.AppendUnique(CPPPATH     = [os.path.join(env["installdir"], "Irrlicht.framework", "Headers")])
             envexamples.AppendUnique(LINKFLAGS   = ["-Wl,-framework,Irrlicht", "-Wl,-F"+env["installdir"]])
         else :
-            envexamples.AppendUnique(LIBS        = ["Irrlicht"])
+            if envexamples["buildtype"] == "debug" :
+                envexamples.AppendUnique(LIBS        = ["IrrlichtDebug"])
+            elif envexamples["buildtype"] == "release" :
+                envexamples.AppendUnique(LIBS        = ["Irrlicht"])
             envexamples.AppendUnique(CPPPATH     = [os.path.join(env["installdir"], "include")])
             envexamples.AppendUnique(LIBPATH     = [os.path.join(env["installdir"], "lib")])
 
 
     elif envexamples["platform"] == "linux" :
-        envexamples.AppendUnique(LIBS            = ["Irrlicht", "GL", "Xxf86vm"])
+        envexamples.AppendUnique(LIBS            = ["GL", "Xxf86vm"])
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
+            envexamples.AppendUnique(LIBS        = ["IrrlichtDebug"])
         elif envexamples["buildtype"] == "release" :
             envexamples.AppendUnique(CXXFLAGS    = ["-O3"])
+            envexamples.AppendUnique(LIBS        = ["Irrlicht"])
     
     
     elif envexamples["platform"] in ["win32-mingw", "win64-mingw"] :
@@ -236,8 +245,10 @@ def getExampleBuildEnvironment(env) :
         envexamples.AppendUnique(LIBS            = ["Irrlicht", "gdi32", "opengl32"])
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
+            envexamples.AppendUnique(LIBS        = ["IrrlichtDebug"])
         elif envexamples["buildtype"] == "release" :
             envexamples.AppendUnique(CXXFLAGS    = ["-O3"])
+            envexamples.AppendUnique(LIBS        = ["Irrlicht"])
         
     
     elif envexamples["platform"] in ["win32-msvc", "win64-msvc"] :
@@ -245,17 +256,14 @@ def getExampleBuildEnvironment(env) :
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
         envexamples.AppendUnique(LINKFLAGS       = ["/nologo"])
         envexamples.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GF", "/GR-", "/GS", "/Gy"])
-        envexamples.AppendUnique(LIBS            = ["Irrlicht.lib", "user32.lib", "gdi32.lib", "opengl32.lib"])
+        envexamples.AppendUnique(LIBS            = [ "user32", "gdi32", "opengl32"])
         if envexamples["buildtype"] == "debug" :
             envexamples.AppendUnique(CXXFLAGS    = ["-Wall", "/MTd", "/RTC1", "/Zi"])
+            envexamples.AppendUnique(LIBS        = ["IrrlichtDebug"])
         elif envexamples["buildtype"] == "release" :
             envexamples.AppendUnique(CXXFLAGS    = ["/GL", "/MT", "/Ox"])
             envexamples.AppendUnique(LINKFLAGS   = ["/SUBSYSTEM:CONSOLE", "/OPT:REF", "/LTCG"])
-        
-        if "win32" in envlib["platform"] :
-            envlib.AppendUnique(LINKFLAGS        = ["/MACHINE:X86"])
-        elif "win64" in envlib["platform"] :
-            envlib.AppendUnique(LINKFLAGS        = ["/MACHINE:X64"])
+            envexamples.AppendUnique(LIBS        = ["Irrlicht"])
     
     return envexamples
 
@@ -307,7 +315,8 @@ def installLibrary(env, lib, header) :
 
     # create a package 
     if env["package"] : 
-        install = env.ZipBetter( os.path.join("bin", "irrlicht-"+env["platform"]+"-"+env["irr_libversion"]+".zip"), install, ZIPROOT=env["installdir"])
+        nameparts = [env["platform"], env["buildtarget"], env["irr_libversion"], env["buildtype"]]
+        install = env.ZipBetter( os.path.join("bin", "irrlicht-"+"-".join(nameparts)+env['ZIPSUFFIX']), install, ZIPROOT=env["installdir"])
         
     NoClean(install)
     Default(install)
