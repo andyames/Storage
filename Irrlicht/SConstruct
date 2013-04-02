@@ -207,6 +207,9 @@ def configDirectX(envlib) :
 # @return cloned build object with example specific data
 def getExampleBuildEnvironment(env) :
     envexamples = env.Clone()
+
+    if envexamples["buildtype"] == "debug" :
+        envexamples.AppendUnique(CPPDEFINES      = ["_DEBUG"])
     
     # define platform specific data
     if envexamples["platform"] in ["osx-library", "osx-framework"] :
