@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os, re, subprocess, tempfile
+import os, re, subprocess, tempfile, zipfile
 import SCons.Errors
 
 
@@ -16,7 +16,22 @@ def ResourceFile(env, list) :
     os.close(fd)
     return env.get("TEMPFILEPREFIX", "") + resource
 
-    
+
+def zipbetter(target, source, env):
+    compression = env.get('ZIPCOMPRESSION', 0)
+    zf = zipfile.ZipFile(str(target[0]), 'w', compression)
+    for s in source:
+        if s.isdir():
+            for dirpath, dirnames, filenames in os.walk(str(s)):
+                for fname in filenames:
+                    path = os.path.join(dirpath, fname)
+                    if os.path.isfile(path):
+                        zf.write(path, os.path.relpath(path, env.get("ZIPROOT", "")))
+        else:
+            zf.write(str(s), os.path.relpath(str(s), env.get("ZIPROOT", "")))
+    zf.close()
+
+
 # creates the global build object
 # @return build object
 def createEnvironment() :
@@ -29,14 +44,19 @@ def createEnvironment() :
     vars.Add(EnumVariable("buildtarget", "type of the library", "shared", allowed_values=("shared", "static")))
     vars.Add(EnumVariable("buildtype", "name of target build type", "release", allowed_values=("debug", "release")))
     vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "linux", "osx-library", "osx-framework", "win32-mingw", "win32-msvc", "win64-msvc")))
+    vars.Add(BoolVariable("package", "creates of the compiled library a package (header & binary) as a zip file", False))
     
     vars.Add(PathVariable("directxsdk", "directory of the Direct X SDK (joystick support is disabled by default)", directxdir,  PathVariable.PathAccept))
 
     # set the correct build toolkit (and a own process spawn)
-    env = Environment(tools = [], variables=vars)
+    env        = Environment(tools = [], variables=vars)
     Help(vars.GenerateHelpText(env))
     env["ResourceFile"] = ResourceFile
     
+    if env["package"] :
+        zipbetter_bld = Builder(action = zipbetter, target_factory = SCons.Node.FS.default_fs.Entry, source_factory = SCons.Node.FS.default_fs.Entry)
+        env.Append(BUILDERS = {'ZipBetter' : zipbetter_bld})
+
     if env["platform"] in ["linux", "osx-library", "osx-framework"] :
         env.Tool("default")
         
@@ -250,7 +270,7 @@ def installLibrary(env, lib, header) :
         lib = lib[0]
     libname = str(lib).replace("']", "").replace("['", "")
     
-
+    
     if env["platform"] in ["linux", "osx-library"] :
         if env["platform"] == "osx-library" :
             versionname = libname.replace(env["SHLIBSUFFIX"], "") + "." + env["irr_libversion"] + env["SHLIBSUFFIX"]
@@ -285,9 +305,12 @@ def installLibrary(env, lib, header) :
             install.append(env.Command( os.path.join(env["installdir"], "include", os.path.basename(str(i))), i, Copy("$TARGET", "$SOURCE")))
 
 
+    # create a package 
+    if env["package"] : 
+        install = env.ZipBetter( os.path.join("bin", "irrlicht-"+env["platform"]+"-"+env["irr_libversion"]+".zip"), install, ZIPROOT=env["installdir"])
+        
     NoClean(install)
     Default(install)
-    Clean(install, [env["platform"]+".res"])
     
 # ===================================================================================================================
 
