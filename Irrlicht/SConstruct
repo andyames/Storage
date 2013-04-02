@@ -134,6 +134,8 @@ def getLibraryBuildEnvironment(env) :
         
         envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
         envlib.AppendUnique(LINKFLAGS       = ["-Wl,-framework,Cocoa", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
+        if envlib["platform"] == "osx-framework" :
+             envlib.AppendUnique(LINKFLAGS       = ["-bundle"])
 
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
