@@ -46,6 +46,7 @@ def createEnvironment() :
     vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "linux", "osx-library", "osx-framework", "win32-mingw", "win32-msvc", "win64-msvc")))
     vars.Add(BoolVariable("package", "creates of the compiled library a package (header & binary) as a zip file", False))
     
+    vars.Add(BoolVariable("opengl", "build with Open GL support", True))
     vars.Add(PathVariable("directxsdk", "directory of the Direct X SDK (joystick support is disabled by default)", directxdir,  PathVariable.PathAccept))
 
     # set the correct build toolkit (and a own process spawn)
@@ -98,6 +99,10 @@ def createEnvironment() :
     if env["buildtype"] == "debug" :
         env["irr_libinstallname"] = env["irr_libinstallname"] + "Debug"
     
+    if "CXX" in os.environ :
+        env.Replace(CXX  = os.environ["CXX"])
+    if "CC" in os.environ :
+        env.Replace(CC  = os.environ["CC"])    
     if "CPPPATH" in os.environ :
         env.AppendUnique(CPPPATH  = os.environ["CPPPATH"].split(os.pathsep))
     if "CXXFLAGS" in os.environ :
@@ -128,25 +133,26 @@ def getLibraryBuildEnvironment(env) :
         libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + "." + envlib["irr_libversion"] + envlib["SHLIBSUFFIX"]
         
         envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
-        envlib.AppendUnique(LINKFLAGS       = ["-Wl,-framework,Cocoa", "-Wl,-framework,OpenGL", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,-framework,Cocoa", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
 
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-O3", "-fexpensive-optimizations"])
-
+        configOpenGL(envlib)
         envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
-        #-dynamiclib
+
     
     elif envlib["platform"] == "linux" :    
         libname = envlib["LIBPREFIX"] + envlib["irr_libinstallname"] + envlib["SHLIBSUFFIX"] + "." + envlib["irr_libversion"]
-
+           
+        envlib.AppendUnique(LIBS            = ["Xxf86vm"])
         envlib.AppendUnique(LINKFLAGS       = ["-Wl,--soname="+libname])
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-O3", "-fexpensive-optimizations"])
-            
+        configOpenGL(envlib)
         envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
         
     
@@ -157,12 +163,13 @@ def getLibraryBuildEnvironment(env) :
 
         # on MinGW we create a DLL, which can be used by other toolchains (we need the std-alias, the kill-flag and the out-implib option)
         envlib.AppendUnique(LINKFLAGS       = ["-Wl,--add-stdcall-alias", "-Wl,--kill-at", "-Wl,--out-implib,"+envlib["LIBPREFIX"]+env["irr_libinstallname"]+envlib["LIBSUFFIX"]])
-        envlib.AppendUnique(LIBS            = ["winmm", "opengl32", "gdi32"])      
+        envlib.AppendUnique(LIBS            = ["winmm", "gdi32"])      
 
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-O3", "-fexpensive-optimizations"])
+        configOpenGL(envlib)
         configDirectX(envlib)
         envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
         
@@ -170,22 +177,39 @@ def getLibraryBuildEnvironment(env) :
     elif envlib["platform"] in ["win32-msvc", "win64-msvc"] :
         envlib.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GF", "/GR-", "/GS", "/Gy", "/Zl"])
         envlib.AppendUnique(LINKFLAGS       = ["/VERSION:\""+envlib["irr_libversion"]+"\"", "/nologo"])
-        envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["directxsdk"], "Include")])
-        envlib.AppendUnique(LIBS            = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib"])
+        envlib.AppendUnique(LIBS            = ["gdi32.lib", "user32.lib", "advapi32.lib"])
         
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "/MTd", "/RTC1", "/Zi"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["/GL", "/MT", "/Ox"])
             envlib.AppendUnique(LINKFLAGS   = ["/SUBSYSTEM:WINDOWS", "/OPT:REF", "/LTCG"])
+        configOpenGL(envlib)
         configDirectX(envlib)
             
     
     return envlib
+
     
+# define Open GL support (OSX needs always the OpenGL framework)
+# @param library environment
+def configOpenGL(envlib) :
+    if not envlib["opengl"] :
+        envlib.AppendUnique(CPPDEFINES      = ["NO_IRR_COMPILE_WITH_OPENGL_"])
+
+    if envlib["platform"] in ["osx-library", "osx-framework"] :
+        envlib.AppendUnique(LINKFLAGS       = ["-Wl,-framework,OpenGL"])
+
+    elif envlib["opengl"] and envlib["platform"] == "linux" :
+        envlib.AppendUnique(LIBS         = ["GL"])
+
+    elif envlib["opengl"] and  envlib["platform"] in ["win32-mingw", "win64-mingw", "win32-msvc", "win64-msvc"] :
+        envlib.AppendUnique(LIBS         = ["opengl32"])
+       
+
 
 # define Direct X 9 support ( Direct X 8 is disabled by the SDK )
-## @param library environment
+# @param library environment
 def configDirectX(envlib) :
     envlib.AppendUnique(CPPDEFINES          = ["NO_IRR_COMPILE_WITH_DIRECT3D_8_", "NO_IRR_COMPILE_WITH_DIRECTINPUT_JOYSTICK_"])
 
@@ -231,7 +255,6 @@ def getExampleBuildEnvironment(env) :
 
 
     elif envexamples["platform"] == "linux" :
-        envexamples.AppendUnique(LIBS            = ["GL", "Xxf86vm"])
         envexamples.AppendUnique(CPPPATH         = [os.path.join(env["installdir"], "include")])
         envexamples.AppendUnique(LIBPATH         = [os.path.join(env["installdir"], "lib")])
         if envexamples["buildtype"] == "debug" :
