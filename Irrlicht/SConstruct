@@ -3,7 +3,6 @@
 import os, re, subprocess, tempfile
 import SCons.Errors
 
-# https://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPFrameworks/Concepts/FrameworkAnatomy.html#//apple_ref/doc/uid/20002253-BAJEJJAB
 
 # === function for build environment object =========================================================================
 
@@ -30,8 +29,8 @@ def createEnvironment() :
     vars.Add(EnumVariable("buildtarget", "type of the library", "shared", allowed_values=("shared", "static")))
     vars.Add(EnumVariable("buildtype", "name of target build type", "release", allowed_values=("debug", "release")))
     vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "linux", "osx-library", "osx-framework", "win32-mingw", "win32-msvc", "win64-msvc")))
-
-    vars.Add(PathVariable("directxsdk", "directory of the DirectX SDK", directxdir,  PathVariable.PathAccept))
+    
+    vars.Add(PathVariable("directxsdk", "directory of the Direct X SDK (joystick support is disabled by default)", directxdir,  PathVariable.PathAccept))
 
     # set the correct build toolkit (and a own process spawn)
     env = Environment(tools = [], variables=vars)
@@ -134,23 +133,13 @@ def getLibraryBuildEnvironment(env) :
 
         # on MinGW we create a DLL, which can be used by other toolchains (we need the std-alias, the kill-flag and the out-implib option)
         envlib.AppendUnique(LINKFLAGS       = ["-Wl,--add-stdcall-alias", "-Wl,--kill-at", "-Wl,--out-implib,"+envlib["LIBPREFIX"]+env["irr_libinstallname"]+envlib["LIBSUFFIX"]])
-        envlib.AppendUnique(LIBS            = ["opengl32", "gdi32", "winmm"])      
+        envlib.AppendUnique(LIBS            = ["winmm", "opengl32", "gdi32"])      
 
-        # define Direct X 9 support
-        if os.path.exists(env["directxsdk"]) :
-            envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["directxsdk"], "Include")])
-            envlib.AppendUnique(CPPDEFINES      = ["IRR_COMPILE_WITH_DX9_DEV_PACK"])
-            envlib.AppendUnique(LIBS            = ["d3dx9"])
-            if "win32" in envlib["platform"] :
-                envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x86")])
-            elif "win64" in envlib["platform"] :
-                envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x84")])
-        
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["-O3", "-fexpensive-optimizations"])
-
+        configDirectX(envlib)
         envlib.AppendUnique(CFLAGS          = envlib["CXXFLAGS"])
         
 
@@ -158,24 +147,34 @@ def getLibraryBuildEnvironment(env) :
         envlib.AppendUnique(CXXFLAGS        = ["/analyze", "/Gd", "/GF", "/GR-", "/GS", "/Gy", "/Zl"])
         envlib.AppendUnique(LINKFLAGS       = ["/VERSION:\""+envlib["irr_libversion"]+"\"", "/nologo"])
         envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["directxsdk"], "Include")])
-        envlib.AppendUnique(LIBS            = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib", "d3dx9.lib"])
+        envlib.AppendUnique(LIBS            = ["opengl32.lib", "gdi32.lib", "user32.lib", "advapi32.lib"])
         
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "/MTd", "/RTC1", "/Zi"])
         elif envlib["buildtype"] == "release" :
             envlib.AppendUnique(CXXFLAGS    = ["/GL", "/MT", "/Ox"])
             envlib.AppendUnique(LINKFLAGS   = ["/SUBSYSTEM:WINDOWS", "/OPT:REF", "/LTCG"])
-        
-        if "win32" in envlib["platform"] :
-            envlib.AppendUnique(LINKFLAGS   = ["/MACHINE:X86"])
-            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x86")])
-        elif "win64" in envlib["platform"] :
-            envlib.AppendUnique(LINKFLAGS   = ["/MACHINE:X64"]) 
-            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x84")])
-
+        configDirectX(envlib)
             
     
     return envlib
+    
+
+# define Direct X 9 support ( Direct X 8 is disabled by the SDK )
+## @param library environment
+def configDirectX(envlib) :
+    envlib.AppendUnique(CPPDEFINES          = ["NO_IRR_COMPILE_WITH_DIRECT3D_8_", "NO_IRR_COMPILE_WITH_DIRECTINPUT_JOYSTICK_"])
+
+    if os.path.exists(env["directxsdk"]) :
+        envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["directxsdk"], "Include")])
+        envlib.AppendUnique(CPPDEFINES      = ["IRR_COMPILE_WITH_DX9_DEV_PACK"])
+        envlib.AppendUnique(LIBS            = ["d3dx9"])
+        if "win32" in envlib["platform"] :
+            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x86")])
+        elif "win64" in envlib["platform"] :
+            envlib.AppendUnique(LIBPATH     = [os.path.join(envlib["directxsdk"], "Lib", "x84")])
+    else :
+        envlib.AppendUnique(CPPDEFINES      = ["NO_IRR_COMPILE_WITH_DIRECT3D_9_"])
     
 
 # creates a build object for the examples,
