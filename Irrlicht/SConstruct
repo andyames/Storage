@@ -4,9 +4,10 @@ import os, re, subprocess, tempfile, zipfile
 import SCons.Errors
 
 
+
 # === function for build environment object =========================================================================
 
-# creating a resource file for suppress long-line-error
+# creating a resource file for suppress long-line-error (Windows problem)
 # @param env environment object
 # @param sources list files (should be absoute path names)
 def ResourceFile(env, list) : 
@@ -17,6 +18,10 @@ def ResourceFile(env, list) :
     return env.get("TEMPFILEPREFIX", "") + resource
 
 
+# a little bit better Zip builder (we can remove a prefix of a path)
+# @param target target option (zip file)
+# @param source list of source files
+# @param env Scons environment object
 def zipbetter(target, source, env):
     compression = env.get('ZIPCOMPRESSION', 0)
     zf = zipfile.ZipFile(str(target[0]), 'w', compression)
@@ -33,14 +38,15 @@ def zipbetter(target, source, env):
 
 
 # creates the global build object
+# @param scriptroot path to the root directory of the Irrlicht sources
 # @return build object
-def createEnvironment() :
+def createEnvironment( scriptroot = ".." ) :
     directxdir = ""
     if "DXSDK_DIR" in os.environ :
         directxdir = os.environ["DXSDK_DIR"]
 
     vars = Variables()
-    vars.Add(PathVariable("installdir", "install directory for the library", os.path.join("bin"),  PathVariable.PathIsDirCreate))
+    vars.Add(PathVariable("installdir", "install directory for the library", os.path.normpath(os.path.join(scriptroot, "bin")),  PathVariable.PathIsDirCreate))
     vars.Add(EnumVariable("buildtarget", "type of the library", "shared", allowed_values=("shared", "static")))
     vars.Add(EnumVariable("buildtype", "name of target build type", "release", allowed_values=("debug", "release")))
     vars.Add(EnumVariable("platform", "build platform", "", allowed_values=("", "linux", "osx-library", "osx-framework", "win32-mingw", "win32-msvc", "win64-msvc")))
@@ -50,7 +56,7 @@ def createEnvironment() :
     vars.Add(PathVariable("directxsdk", "directory of the Direct X SDK (joystick support is disabled by default)", directxdir,  PathVariable.PathAccept))
 
     # set the correct build toolkit (and a own process spawn)
-    env        = Environment(tools = [], variables=vars)
+    env        = Environment(tools = [], variables=vars, irr_scriptroot = scriptroot)
     Help(vars.GenerateHelpText(env))
     env["ResourceFile"] = ResourceFile
     
@@ -83,7 +89,7 @@ def createEnvironment() :
     # read first Irrlicht SDK version from the file include/IrrCompileConfig.h
     irrlichtversion = None
     try :
-        configfile = open( os.path.join("include", "IrrCompileConfig.h"), "r" )
+        configfile = open( os.path.normpath(os.path.join(env["irr_scriptroot"], "include", "IrrCompileConfig.h")), "r" )
         irrlichtversion = re.search("#define(.*)IRRLICHT_SDK_VERSION(.*)", configfile.read())
         configfile.close()
     except :
@@ -91,14 +97,19 @@ def createEnvironment() :
     if irrlichtversion == None :
         raise SCons.Errors.StopError("can not find Irrlicht SDK version in the configuration header")
     
+    # default settings (eg pathes, names, ...)
     env["irr_libversion"]         = irrlichtversion.group(2).replace("\"", "").strip()
     env["irr_libinstallname"]     = "Irrlicht"
     env["irr_osxframeworkname"]   = env["irr_libinstallname"]
-    env["irr_srcexamples"]        = "examples"
-    env["irr_srclibrary"]         = os.path.join("source", "Irrlicht")
+    env["irr_srcexamples"]        = os.path.normpath(os.path.join(env["irr_scriptroot"], "examples"))
+    env["irr_srclibrary"]         = os.path.normpath(os.path.join(env["irr_scriptroot"], "source", "Irrlicht"))
+    env["irr_header"]             = os.path.normpath(os.path.join(env["irr_scriptroot"], "include"))   
+    env["irr_examplesinstalldir"] = os.path.normpath(os.path.join(env["irr_scriptroot"], "bin", "examples-"+env["platform"]))
+
     if env["buildtype"] == "debug" :
         env["irr_libinstallname"] = env["irr_libinstallname"] + "Debug"
     
+    # read system environment data manually, because we read only this variables, that are needed by the build process
     if "CXX" in os.environ :
         env.Replace(CXX  = os.environ["CXX"])
     if "CC" in os.environ :
@@ -123,7 +134,7 @@ def getLibraryBuildEnvironment(env) :
     envlib = env.Clone()
     
     # define global options
-    envlib.AppendUnique(CPPPATH             = ["include", envlib["irr_srclibrary"], os.path.join(envlib["irr_srclibrary"], "zlib"), os.path.join(envlib["irr_srclibrary"], "jpeglib"), os.path.join(envlib["irr_srclibrary"], "libpng")])
+    envlib.AppendUnique(CPPPATH             = [ envlib["irr_header"], envlib["irr_srclibrary"], os.path.join(envlib["irr_srclibrary"], "zlib"), os.path.join(envlib["irr_srclibrary"], "jpeglib"), os.path.join(envlib["irr_srclibrary"], "libpng")])
     envlib.AppendUnique(CPPDEFINES          = ["IRRLICHT_EXPORTS"])
     if envlib["buildtype"] == "debug" :
         envlib.AppendUnique(CPPDEFINES      = ["_DEBUG"])
@@ -134,8 +145,6 @@ def getLibraryBuildEnvironment(env) :
         
         envlib.AppendUnique(CPPPATH         = [os.path.join(envlib["irr_srclibrary"], "MacOSX")])
         envlib.AppendUnique(LINKFLAGS       = ["-Wl,-framework,Cocoa", "-Wl,-framework,IOKit", "-Wl,-install_name,"+libname])
-        if envlib["platform"] == "osx-framework" :
-             envlib.AppendUnique(LINKFLAGS       = ["-bundle"])
 
         if envlib["buildtype"] == "debug" :
             envlib.AppendUnique(CXXFLAGS    = ["-Wall", "-g"])
@@ -305,7 +314,7 @@ def installLibrary(env, lib, header) :
     if lib and type(lib) == type([]) :
         lib = lib[0]
     libname = str(lib).replace("']", "").replace("['", "")
-    
+
     
     if env["platform"] in ["linux", "osx-library"] :
         if env["platform"] == "osx-library" :
@@ -344,7 +353,7 @@ def installLibrary(env, lib, header) :
     # create a package 
     if env["package"] : 
         nameparts = [env["platform"], env["buildtarget"], env["irr_libversion"], env["buildtype"]]
-        install = env.ZipBetter( os.path.join("bin", "irrlicht-"+"-".join(nameparts)+env['ZIPSUFFIX']), install, ZIPROOT=env["installdir"])
+        install = env.ZipBetter( os.path.normpath(os.path.join(env["irr_scriptroot"], "bin", "irrlicht-"+"-".join(nameparts)+env['ZIPSUFFIX'])), install, ZIPROOT=env["installdir"])
         
     NoClean(install)
     Default(install)
@@ -365,7 +374,7 @@ envexamples = getExampleBuildEnvironment(env)
 
 # === set the sources (we use similar structure of the Makefile) ====================================================
 # get all header files (for later installation)
-headers = Glob(os.path.join("include", "*.h")) 
+headers = Glob(os.path.join(env["irr_header"], "*.h")) 
 
 # library sources (libjpeg & bzip2 added manually, because not all files are needed)
 libjpeg  = [ os.path.join(env["irr_srclibrary"], "jpeglib", i) for i in ["jcapimin.c", "jcapistd.c", "jccoefct.c", "jccolor.c", "jcdctmgr.c", "jchuff.c", "jcinit.c", "jcmainct.c", "jcmarker.c", "jcmaster.c", "jcomapi.c", "jcparam.c", "jcprepct.c", "jcsample.c", "jctrans.c", "jdapimin.c", "jdapistd.c", "jdatadst.c", "jdatasrc.c", "jdcoefct.c", "jdcolor.c", "jddctmgr.c", "jdhuff.c", "jdinput.c", "jdmainct.c", "jdmarker.c", "jdmaster.c", "jdmerge.c", "jdpostct.c", "jdsample.c", "jdtrans.c", "jerror.c", "jfdctflt.c", "jfdctfst.c", "jfdctint.c", "jidctflt.c", "jidctfst.c", "jidctint.c", "jmemmgr.c", "jmemnobs.c", "jquant1.c", "jquant2.c", "jutils.c", "jcarith.c", "jdarith.c", "jaricom.c"] ]
@@ -396,7 +405,7 @@ elif env["buildtarget"] == "static" :
 # build examples
 examples = []
 for i in srcexamples :
-    examples.append( envexamples.Program( os.path.join("bin", "examples-"+envlib["platform"], i.replace(".", "_")), os.path.join(env["irr_srcexamples"], i, "main.cpp")) )
+    examples.append( envexamples.Program( os.path.join(env["irr_examplesinstalldir"], i.replace(".", "_")), os.path.join(env["irr_srcexamples"], i, "main.cpp")) )
 
 
 installLibrary(env, lib, headers)
