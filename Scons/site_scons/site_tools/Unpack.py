@@ -27,6 +27,8 @@ import SCons.Errors
 import SCons.Util
 
 
+
+
 # extractor function for Tar output
 # @param count number of returning lines
 # @param no number of the output line
@@ -53,6 +55,8 @@ def __fileextractor_nix_unzip( count, no, i ) :
     if no < 3 or no >= count - 2 :
         return None
     return i.split()[-1]
+
+
 
 
 # detecting tool function and
@@ -282,9 +286,7 @@ def __emitter( target, source, env ) :
 
 
 
-# generate function, that adds the builder to the environment,
-# the value "DOWNLOAD_USEFILENAME" replaces the target name with
-# the filename of the URL
+# generate function, that adds the builder to the environment
 # @env environment object
 def generate( env ) :
     __detect(env)
