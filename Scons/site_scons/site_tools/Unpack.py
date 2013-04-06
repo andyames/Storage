@@ -28,17 +28,29 @@ import SCons.Util
 
 
 # extractor function for Tar output
+# @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_nix_tar( no, i ) :
+def __fileextractor_nix_tar( count, no, i ) :
     return i.split()[-1]
 
 # extractor function for GZip output,
 # ignore the first line
+# @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_nix_gzip( no, i ) :
+def __fileextractor_nix_gzip( count, no, i ) :
     if no == 0 :
+        return None
+    return i.split()[-1]
+
+# extractor function for Unzip output,
+# ignore the first & last two lines
+# @param count number of returning lines
+# @param no number of the output line
+# @param i line content
+def __fileextractor_nix_unzip( count, no, i ) :
+    if no < 3 or no >= count - 2 :
         return None
     return i.split()[-1]
 
@@ -122,14 +134,22 @@ def __detect( env ) :
     elif env["PLATFORM"] in ["darwin", "linux"] :
 
         toolset["ZIP"]["RUN"]             = __NonExist2Val(env.WhereIs("unzip"), "")
+        toolset["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_unzip
+        toolset["TAR"]["LISTFLAGS"]       = "-l"
+        toolset["ZIP"]["EXTRACTFLAGS"]    = "-oqq"
+
         toolset["TAR"]["RUN"]             = __NonExist2Val(env.WhereIs("tar"), "")
+        toolset["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_tar
+        toolset["TAR"]["LISTFLAGS"]       = "tvf"
+        toolset["TAR"]["EXTRACTFLAGS"]    = "xf"
+
         toolset["BZIP"]["RUN"]            = __NonExist2Val(env.WhereIs("bzip2"), "")
+        toolset["BZIP"]["EXTRACTFLAGS"]   = "-df"
 
         toolset["GZIP"]["RUN"]            = __NonExist2Val(env.WhereIs("gzip"), "")
         toolset["GZIP"]["LISTEXTRACTOR"]  = __fileextractor_nix_gzip
         toolset["GZIP"]["LISTFLAGS"]      = "-l"
         toolset["GZIP"]["EXTRACTFLAGS"]   = "-df"
-
 
         toolset["TARGZ"]["RUN"]           = toolset["TAR"]["RUN"] 
         toolset["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
@@ -138,6 +158,8 @@ def __detect( env ) :
 
         toolset["TARBZ"]["RUN"]           = toolset["TAR"]["RUN"] 
         toolset["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
+        toolset["TARBZ"]["EXTRACTFLAGS"]  = "xfj"
+        toolset["TARBZ"]["LISTFLAGS"]     = "tvfj"
 
     else :
         raise SCons.Errors.StopError("Unpack tool detection on this platform [%s] unkown" % (env["PLATFORM"]))
@@ -213,6 +235,10 @@ def __action( target, source, env ) :
     if not extractor :
         raise SCons.Errors.StopError( "can not find any extractor value for the source file [%s]" % (source[0]) )
     
+    # if the extract command is empty, we create an error
+    if len(extractor["EXTRACTCMD"]) == 0 :
+        raise SCons.Errors.StopError( "the extractor command for the source file [%s] is empty" % (source[0]) )
+
     # build it now
     handle = subprocess.Popen( env.subst(extractor["EXTRACTCMD"], source=source, target=target), shell=True )
     if handle.wait() <> 0 :
@@ -231,8 +257,8 @@ def __emitter( target, source, env ) :
         raise SCons.Errors.StopError( "can not find any extractor value for the source file [%s]" % (source[0]) )
 
     # we do a little trick, because the Download compiler create an empty file, so we
-    # return direct the target file
-    if source[0].get_size() == 0 :
+    # return direct the target file / we return it also, if the does not exists a LISTCMD
+    if source[0].get_size() == 0 or len(extractor["LISTCMD"]) == 0 :
         return target, source
            
     # create the list command and run it in a subprocess and pipes the output to a variable
@@ -247,7 +273,7 @@ def __emitter( target, source, env ) :
     # a string we push it back to the target list
     try :
         if callable(extractor["LISTEXTRACTOR"]) :
-            target = filter( lambda s : SCons.Util.is_String(s), [ extractor["LISTEXTRACTOR"](no, i) for no, i in enumerate(target) ] )
+            target = filter( lambda s : SCons.Util.is_String(s), [ extractor["LISTEXTRACTOR"]( len(target), no, i) for no, i in enumerate(target) ] )
     except Exception, e :
         raise SCons.Errors.StopError( "%s" % (e) )
     
