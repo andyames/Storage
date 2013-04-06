@@ -24,7 +24,6 @@ def LaPack_DownloadURL() :
 # test Scons script with my builders + create environment
 env = Environment( tools = ["default", "URLDownload", "Unpack"] )
 
-x = env.URLDownload( "lapack", LaPack_DownloadURL() )
-#y = env.Unpack("xxx", x)
-
-#env.Command("xxx", x, "tar xfvz $SOURCE")
+# uses URLDownload-Builder and run Unpack-Builder after download
+#env.URLDownload( "lapack", LaPack_DownloadURL() )
+env.Unpack("lapack",  env.URLDownload( "lapack", LaPack_DownloadURL() ) )

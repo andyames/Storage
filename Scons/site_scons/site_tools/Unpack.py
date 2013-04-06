@@ -5,16 +5,17 @@
 # the builder extract the archive. The environment variable stores a dictionary "UNPACK"
 # for setting different extractions:
 # {
-#	SUFFIX => defines a list with file suffixes, which should be handled with this extractor
-#	EXTRACTFLAGS => a string parameter for the RUN command for extracting the data
+#   SUFFIX => defines a list with file suffixes, which should be handled with this extractor
+#   EXTRACTFLAGS => a string parameter for the RUN command for extracting the data
 #   EXTRACTCMD => full extract command of the builder
-#   RUN => the main program which will be started
+#   RUN => the main program which will be started (if the parameter is empty, the extractor will be ignored)
 #   LISTCMD => the listing command for the emitter
 #   LISTFLAGS => the string options for the RUN command for showing a list of files
 #   LISTEXTRACTOR => a optional Python function, that is called on each output line of the
 #                    LISTCMD for extracting file & dir names, the function need one parameter
 #                    and must return a string with the file / dir path (other value types will be ignored)
-#}
+# }
+# The file which is handled by the first suffix match of the extractor, the extractor list can be append for other files
 
 
 import subprocess
@@ -34,6 +35,7 @@ def __NonExist2Val( val, empty ) :
     return val
 
 
+# extractor function for Tar output
 def __fileextractor_nix( i ) :
     return i.split()[-1]
 
@@ -41,22 +43,22 @@ def __fileextractor_nix( i ) :
 # detecting tool function and
 # setting default parameter
 # @param env environment object
-def __detecttools( env ) :
+def __detect( env ) :
     toolset = { 
         "TAR" : {
-            "SUFFIX" 	     : [".tar"],
+            "SUFFIX"         : [".tar"],
             "EXTRACTFLAGS"   : "",
             "EXTRACTCMD"     : "",
             "RUN"            : "",
-            "LISTCMD"        : "",
+            "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
             "LISTEXTRACTOR"  : None
         },
 
         "TARGZ" : {
-            "SUFFIX" 	     : [".tar.gz", ".tgz", ".tar.gzip"],
-            "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "",
+            "SUFFIX"         : [".tar.gz", ".tgz", ".tar.gzip"],
+            "EXTRACTFLAGS"   : "xfz",
+            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE",
             "RUN"            : "",
             "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "tvfz",
@@ -64,11 +66,11 @@ def __detecttools( env ) :
         },
 
         "TARBZ" : {
-            "SUFFIX" 	     : [".tar.bz", ".tbz", ".tar.bz2", ".tar.bzip2", ".tar.bzip"],
+            "SUFFIX"         : [".tar.bz", ".tbz", ".tar.bz2", ".tar.bzip2", ".tar.bzip"],
             "EXTRACTFLAGS"   : "",
             "EXTRACTCMD"     : "",
             "RUN"            : "",
-            "LISTCMD"        : "",
+            "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
             "LISTEXTRACTOR"  : None
         },
@@ -78,7 +80,7 @@ def __detecttools( env ) :
             "EXTRACTFLAGS"   : "",
             "EXTRACTCMD"     : "",
             "RUN"            : "",
-            "LISTCMD"        : "",
+            "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
             "LISTEXTRACTOR"  : None
         },
@@ -88,7 +90,7 @@ def __detecttools( env ) :
             "EXTRACTFLAGS"   : "",
             "EXTRACTCMD"     : "",
             "RUN"            : "",
-            "LISTCMD"        : "",
+            "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
             "LISTEXTRACTOR"  : None
         },
@@ -98,7 +100,7 @@ def __detecttools( env ) :
             "EXTRACTFLAGS"   : "",
             "EXTRACTCMD"     : "",
             "RUN"            : "",
-            "LISTCMD"        : "",
+            "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
             "LISTEXTRACTOR"  : None
         }
@@ -124,6 +126,45 @@ def __detecttools( env ) :
     env.Replace(UNPACK = toolset)
 
 
+# returns the extractor item for handling the source file
+# @param source input source file
+# @param env environment object
+# @return extractor entry or None on non existing
+def __getExtractor( source, env ) :
+    # we check each unpacker and get the correct
+    # list command first, run the command and
+    # replace the target filelist with the list values
+    for unpackername, extractor in env["UNPACK"].iteritems() :
+        
+        # if the run command not set, we continue the extractor search, otherwise we check the extractor parameters
+        if not SCons.Util.is_String(extractor["RUN"]) :
+            raise SCons.Errors.StopError("list command of the unpack builder for [%s] archives is not a string" % (unpackername))
+        if not len(extractor["RUN"]) :
+            continue
+
+        
+        if not SCons.Util.is_String(extractor["LISTFLAGS"]) :
+            raise SCons.Errors.StopError("list flags of the unpack builder for [%s] archives is not a string" % (unpackername))
+        if not SCons.Util.is_String(extractor["LISTCMD"]) :
+            raise SCons.Errors.StopError("list command of the unpack builder for [%s] archives is not a string" % (unpackername))
+
+        if not SCons.Util.is_String(extractor["EXTRACTFLAGS"]) :
+            raise SCons.Errors.StopError("extract flags of the unpack builder for [%s] archives is not a string" % (unpackername))
+        if not SCons.Util.is_String(extractor["EXTRACTCMD"]) :
+            raise SCons.Errors.StopError("extract command of the unpack builder for [%s] archives is not a string" % (unpackername))
+
+
+        # check the source file suffix and if the first is found, run the list command        
+        if not SCons.Util.is_List(extractor["SUFFIX"]) :
+            raise SCons.Errors.StopError("suffix list of the unpack builder for [%s] archives is not a list" % (unpackername))
+
+        for suffix in extractor["SUFFIX"] :
+            if str(source[0]).lower()[-len(suffix):] == suffix.lower() :
+                return extractor
+
+    return None 
+
+
 # creates the extracter output message
 # @param s original message
 # @param target target name
@@ -138,7 +179,16 @@ def __message( s, target, source, env ) :
 # @param source extracted files
 # @env environment object
 def __action( target, source, env ) :
-    pass
+    extractor = __getExtractor(source, env)
+    if not extractor :
+        raise SCons.Errors.StopError( "can not find any extractor value for the source file [%s]" % (source[0]) )
+
+    # build it now
+    handle = subprocess.Popen( env.subst(extractor["EXTRACTCMD"], source=source), shell=True)
+    status = handle.wait()
+    if status <> 0 :
+        raise SCons.Errors.BuildError( "error running extractor on the source [%s]" % (source)  )
+
 
 
 # emitter function for getting the files
@@ -147,50 +197,33 @@ def __action( target, source, env ) :
 # @param source extracted files
 # @env environment object
 def __emitter( target, source, env ) :
-    target = []
-    
-    # we check each unpacker and get the correct
-    # list command first, run the command and
-    # replace the target filelist with the list values
-    for unpackername, extractor in env["UNPACK"].iteritems() :
+    extractor = __getExtractor(source, env)
+    if not extractor :
+        raise SCons.Errors.StopError( "can not find any extractor value for the source file [%s]" % (source[0]) )
 
-        # if the run command not set, we continue the extractor search, otherwise we check the extractor parameters
-        if not SCons.Util.is_String(extractor["RUN"]) :
-            raise SCons.Errors.StopError("list command of the unpack builder for [%s] archives is not a string" % (unpackername))
-        if not len(extractor["RUN"]) :
-            continue
+    # we do a little trick, because the Download compiler create an empty file, so we
+    # return direct the target file
+    if source[0].get_size() == 0 :
+        return target, source
 
-        if not SCons.Util.is_String(extractor["LISTFLAGS"]) :
-            raise SCons.Errors.StopError("list flags of the unpack builder for [%s] archives is not a string" % (unpackername))
-        if not SCons.Util.is_String(extractor["LISTCMD"]) :
-            raise SCons.Errors.StopError("list command of the unpack builder for [%s] archives is not a string" % (unpackername))
-        if not SCons.Util.is_List(extractor["SUFFIX"]) :
-            raise SCons.Errors.StopError("suffix list of the unpack builder for [%s] archives is not a list" % (unpackername))
-        
-        # check the source file suffix and if the first is found, run the list command        
-        for suffix in extractor["SUFFIX"] :
-            if str(source[0]).lower()[-len(suffix):] == suffix.lower() :
-                
- 
-                cmd    = subprocess.Popen( env.subst(extractor["LISTCMD"], source=source), shell=True, stdout=subprocess.PIPE )
-                target = cmd.stdout.readlines()
-                cmd.communicate()
-                if cmd.returncode <> 0 :
-                    raise SCons.Errors.StopError("error on running list command of the unpacker [%s]" % (unpackername))
+    target = []                
+    # create the list command and run it in a subprocess and pipes the output to a variable
+    cmd = subprocess.Popen( env.subst(extractor["LISTCMD"], source=source), shell=True, stdout=subprocess.PIPE )
+    target = cmd.stdout.readlines()
+    cmd.communicate()
+    if cmd.returncode <> 0 :
+        raise SCons.Errors.StopError("error on running list command of the source file [%s]" % (source[0]) )
 
-                # if the returning output exists and the listseperator is a callable structure
-                # we run it for each line of the output and if the return of the callable is
-                # a string we push it back to the target list, the callable function get the 
-                # output line
-                try :
-                    if callable(extractor["LISTEXTRACTOR"]) :
-                        target = filter( lambda s : SCons.Util.is_String(s), [ extractor["LISTEXTRACTOR"](v) for v in target ] )
-                except Exception, e :
-                    raise SCons.Errors.StopError( "%s" % (e) )
+    # if the returning output exists and the listseperator is a callable structure
+    # we run it for each line of the output and if the return of the callable is
+    # a string we push it back to the target list
+    try :
+        if callable(extractor["LISTEXTRACTOR"]) :
+            target = filter( lambda s : SCons.Util.is_String(s), [ extractor["LISTEXTRACTOR"](v) for v in target ] )
+    except Exception, e :
+        raise SCons.Errors.StopError( "%s" % (e) )
 
-                return target, source
-
-    raise SCons.Errors.StopError( "can not find any unpack value for the source file [%s]" % (source[0]) )
+    return target, source
 
 
 
@@ -200,12 +233,11 @@ def __emitter( target, source, env ) :
 # the filename of the URL
 # @env environment object
 def generate( env ) :
-    __detecttools(env)
+    __detect(env)
 
     # the target_factory must be a "Entry", because the target list can be files and dirs, so we can not specified the targetfactory explicite 
     env["BUILDERS"]["Unpack"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.Entry,  source_factory = SCons.Node.FS.File,  PRINT_CMD_LINE_FUNC = __message )
 
-    #print env.Dump()
 
 # existing function of the builder
 # @return true

@@ -45,6 +45,11 @@ def __action( target, source, env ) :
 # @param source URL for download
 # @env environment object
 def __emitter( target, source, env ) :
+    # we need a temporary file, because the dependency graph
+    # of Scons need a physical existing file (here should be
+    # a pseudo file a nice way)
+    target[0].prepare()
+
     if not env.get("URLDOWNLOAD_USEURLFILENAME", False) :
         return target, source
 
