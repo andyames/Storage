@@ -1,0 +1,29 @@
+# -*- coding: utf-8 -*-
+
+# === build script for creating one XML file of a Doxygen XML documentation
+# calls the XML file and transform it with XSL into the Markdown code =====
+
+import os
+import SCons.Errors
+
+
+vars = Variables()
+vars.Add(PathVariable("input", "input XML file", "",  PathVariable.PathIsFile))
+vars.Add(PathVariable("output", "output XML file for generating one documentation", "",  PathVariable.PathAccept ))
+
+env = Environment( ENV = os.environ, variables=vars )
+Help(vars.GenerateHelpText(env))
+
+
+if len(env["output"]) == 0 and "gen" in COMMAND_LINE_TARGETS and not env.GetOption("clean") :
+	raise SCons.Errors.StopError("output must be set")
+
+env.Clean(
+	env.Alias( "gen", env.Command(env["output"], env["input"], "saxon -o:$TARGET -s:$SOURCE -xsl:${SOURCE.dir}/combine.xslt") ),
+	[ Glob("*.xml") ]
+)
+
+
+md = env.Command("md", env["input"], "saxon -s:$SOURCE -xsl:MarkDown.xsl")
+Default( md )
+env.Clean( md, [ Glob("*.md") ])
