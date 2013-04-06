@@ -38,7 +38,7 @@ def __action( target, source, env ) :
 # @param source URL for download
 # @env environment object
 def __emitter( target, source, env ) :
-    if not env["DOWNLOAD_USEURLFILENAME"] :
+    if not env["URLDOWNLOAD_USEURLFILENAME"] :
         return target, source
 
     try :
@@ -56,8 +56,8 @@ def __emitter( target, source, env ) :
 # the filename of the URL
 # @env environment object
 def generate( env ):
-    env["BUILDERS"]["Download"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = SCons.Node.Python.Value,  PRINT_CMD_LINE_FUNC = __message )
-    env.Replace(DOWNLOAD_USEURLFILENAME = True)
+    env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = SCons.Node.Python.Value,  PRINT_CMD_LINE_FUNC = __message )
+    env.Replace(URLDOWNLOAD_USEURLFILENAME = True)
 
 # existing function of the builder
 # @return true

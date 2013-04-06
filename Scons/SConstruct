@@ -2,7 +2,7 @@
 
 # test Scons script my builders
 # create environment
-env = Environment( tools = ["default", "Download"] )
+env = Environment( tools = ["default", "URLDownload"] )
 
-# test Downloadbuilder
-env.Download("lapack", "http://www.netlib.org/lapack/lapack-3.4.2.tgz")
+# test URL Downloadbuilder
+env.URLDownload("lapack", "http://www.netlib.org/lapack/lapack-3.4.2.tgz")
