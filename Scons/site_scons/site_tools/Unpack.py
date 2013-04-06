@@ -131,7 +131,7 @@ def __detect( env ) :
     #    pass
 
     # read the tools on *nix systems and sets the default parameters
-    if env["PLATFORM"] in ["darwin", "linux"] :
+    if env["PLATFORM"] in ["darwin", "linux", "posix"] :
 
         toolset["ZIP"]["RUN"]             = __NonExist2Val(env.WhereIs("unzip"), "")
         toolset["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_unzip
