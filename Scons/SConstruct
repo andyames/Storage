@@ -20,6 +20,7 @@ def LaPack_DownloadURL() :
         
     return found.group(0).replace("<a href=\"", "").replace("\">", "")
 
+
 # test URL Downloadbuilder with LUA, we use a normal
 # Python function for getting the latest download URL
 def LUA_DownloadURL()  :
@@ -45,5 +46,5 @@ def LUA_DownloadURL()  :
 env = Environment( tools = ["default", "URLDownload", "Unpack"] )
 
 # uses URLDownload-Builder and run Unpack-Builder after download
-#env.Unpack("lapack",  env.URLDownload( "lapack", LaPack_DownloadURL() ) )
-env.Unpack("lua",  env.URLDownload( "lua", LUA_DownloadURL() ) )
+#env.Unpack("lapack-extract",  env.URLDownload( "lapack-download", LaPack_DownloadURL() ) )
+env.Unpack("lua-extract",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
