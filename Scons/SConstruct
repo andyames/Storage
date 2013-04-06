@@ -1,0 +1,6 @@
+# -*- coding: utf-8 -*-
+
+
+env = Environment( tools = ["default", "Download"] )
+
+env.Download("lapack", "http://www.netlib.org/lapack/lapack-3.4.2.tgz")

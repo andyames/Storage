@@ -1,0 +1,7 @@
+*,zip
+*.bz
+*.gz
+*.tar
+*.pyc
+*.dblite
+*.tgz
