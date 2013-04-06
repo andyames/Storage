@@ -1,4 +1,4 @@
 Storage
 =======
 
-repository for different data
+repository for different scripts and testing calls
