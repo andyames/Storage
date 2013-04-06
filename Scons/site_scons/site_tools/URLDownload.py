@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 
+# the URLDownload-Builder can be download any data from an URL into a target file
+# and can replace the target file name with the URL filename (the setting variable
+# within the environment object is a boolean type with the name "URLDOWNLOAD_USEURLFILENAM", 
+# default setting replaces the target name with the URL filename)
+
+
 import urllib2
 import urlparse
 
 import SCons.Builder
 import SCons.Node
+import SCons.Errors
 
 
 
@@ -38,7 +45,7 @@ def __action( target, source, env ) :
 # @param source URL for download
 # @env environment object
 def __emitter( target, source, env ) :
-    if not env["URLDOWNLOAD_USEURLFILENAME"] :
+    if not env.get("URLDOWNLOAD_USEURLFILENAME", False) :
         return target, source
 
     try :
@@ -55,13 +62,13 @@ def __emitter( target, source, env ) :
 # the value "DOWNLOAD_USEFILENAME" replaces the target name with
 # the filename of the URL
 # @env environment object
-def generate( env ):
+def generate( env ) :
     env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = SCons.Node.Python.Value,  PRINT_CMD_LINE_FUNC = __message )
-    env.Replace(URLDOWNLOAD_USEURLFILENAME = True)
+    env.Replace(URLDOWNLOAD_USEURLFILENAME =  True )
 
 # existing function of the builder
 # @return true
-def exists(env):
+def exists(env) :
     return 1
 
 

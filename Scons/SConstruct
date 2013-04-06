@@ -1,8 +1,30 @@
 # -*- coding: utf-8 -*-
 
-# test Scons script my builders
-# create environment
-env = Environment( tools = ["default", "URLDownload"] )
+import urllib2
+import re
 
-# test URL Downloadbuilder
-env.URLDownload("lapack", "http://www.netlib.org/lapack/lapack-3.4.2.tgz")
+
+# test URL Downloadbuilder with LAPack, we use a normal
+# Python function for getting the latest download URL
+def LaPack_DownloadURL() :
+    # read download path of the LAPack (latest version)
+    f = urllib2.urlopen("http://www.netlib.org/lapack/")
+    html = f.read()
+    f.close()
+    
+    found = re.search("<a href=\"http://www.netlib.org/lapack/(.*)tgz\">", html)
+    if found == None :
+        raise SCons.Errors.StopError("LAPack Download URL not found")
+        
+    return found.group(0).replace("<a href=\"", "").replace("\">", "")
+
+
+
+
+# test Scons script with my builders + create environment
+env = Environment( tools = ["default", "URLDownload", "Unpack"] )
+
+x = env.URLDownload( "lapack", LaPack_DownloadURL() )
+#y = env.Unpack("xxx", x)
+
+#env.Command("xxx", x, "tar xfvz $SOURCE")
