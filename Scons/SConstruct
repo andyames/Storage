@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# === Test Script for the Builder ===============
+
 import urllib2
 import re
 
@@ -18,6 +20,24 @@ def LaPack_DownloadURL() :
         
     return found.group(0).replace("<a href=\"", "").replace("\">", "")
 
+# test URL Downloadbuilder with LUA, we use a normal
+# Python function for getting the latest download URL
+def LUA_DownloadURL()  :
+    # read download path of the LUA library (latest version)
+    f = urllib2.urlopen("http://www.lua.org/download.html")
+    html = f.read()
+    f.close()
+
+    found = re.search("<a href=\"ftp/lua-(.*)\.tar\.gz\">", html, re.IGNORECASE)
+    if found == None :
+        raise RuntimeError("LUA Download URL not found")
+
+    downloadurl = found.group(0).replace("\"", "").replace("<", "").replace(">", "")
+    downloadurl = re.sub(r'(?i)a href=', "", downloadurl)
+
+    return "http://www.lua.org/" + downloadurl
+
+
 
 
 
@@ -25,5 +45,5 @@ def LaPack_DownloadURL() :
 env = Environment( tools = ["default", "URLDownload", "Unpack"] )
 
 # uses URLDownload-Builder and run Unpack-Builder after download
-#env.URLDownload( "lapack", LaPack_DownloadURL() )
-env.Unpack("lapack",  env.URLDownload( "lapack", LaPack_DownloadURL() ) )
+#env.Unpack("lapack",  env.URLDownload( "lapack", LaPack_DownloadURL() ) )
+env.Unpack("lua",  env.URLDownload( "lua", LUA_DownloadURL() ) )

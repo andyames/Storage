@@ -6,3 +6,4 @@
 *.dblite
 *.tgz
 lapack*
+lua*

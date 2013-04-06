@@ -47,8 +47,9 @@ def __detect( env ) :
     toolset = { 
         "TAR" : {
             "SUFFIX"         : [".tar"],
+            "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "",
+            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARGZ']['EXTRACTSUFFIX']}",
             "RUN"            : "",
             "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
@@ -57,8 +58,9 @@ def __detect( env ) :
 
         "TARGZ" : {
             "SUFFIX"         : [".tar.gz", ".tgz", ".tar.gzip"],
+            "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "xfz",
-            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE",
+            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARGZ']['EXTRACTSUFFIX']}",
             "RUN"            : "",
             "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "tvfz",
@@ -67,8 +69,9 @@ def __detect( env ) :
 
         "TARBZ" : {
             "SUFFIX"         : [".tar.bz", ".tbz", ".tar.bz2", ".tar.bzip2", ".tar.bzip"],
+            "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "",
+            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARGZ']['EXTRACTSUFFIX']}",
             "RUN"            : "",
             "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
@@ -77,8 +80,9 @@ def __detect( env ) :
 
         "BZIP" : {
             "SUFFIX"         : [".bz", "bzip", ".bz2", ".bzip2"],
+            "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "",
+            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARGZ']['EXTRACTSUFFIX']}",
             "RUN"            : "",
             "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
@@ -87,8 +91,9 @@ def __detect( env ) :
 
         "GZIP" : {
             "SUFFIX"         : [".gz", ".gzip"],
+            "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "",
+            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARGZ']['EXTRACTSUFFIX']}",
             "RUN"            : "",
             "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
@@ -97,8 +102,9 @@ def __detect( env ) :
 
         "ZIP" : {
             "SUFFIX"         : [".zip"],
+            "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "",
+            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARGZ']['EXTRACTSUFFIX']}",
             "RUN"            : "",
             "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE",
             "LISTFLAGS"      : "",
