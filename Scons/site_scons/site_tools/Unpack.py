@@ -21,9 +21,13 @@
 # }
 # Other options in the UNPACK dictionary are:
 #   VIWEXTRACTOUTPUT=> shows the output messages of the extraction command (default False)
+#
 # The file which is handled by the first suffix match of the extractor, the extractor list can be append for other files.
 # The order of the extractor dictionary creates the listing & extractor command eg file extension .tar.gz should be
-# before .gz, because the tar.gz is extract in one shoot
+# before .gz, because the tar.gz is extract in one shoot.
+#
+# Under *nix system these tools are supported: tar, bzip2, gzip, unzip
+# Under Windows only 7-Zip (http://www.7-zip.org/) is supported
 
 
 import subprocess, os
@@ -163,7 +167,7 @@ def __detect( env ) :
         }
     }
 
-    # read tools for Windows system (order of check: 7-zip, Winrar, Winzip)
+    # read tools for Windows system
     if env["PLATFORM"] <> "darwin" and "win" in env["PLATFORM"] :
         
         if env.WhereIs("7z") :
@@ -208,6 +212,11 @@ def __detect( env ) :
             toolset["EXTRACTOR"]["TAR"]["LISTSUFFIX"]      = "-y -ttar -so"
             toolset["EXTRACTOR"]["TAR"]["EXTRACTFLAGS"]    = "x"
             toolset["EXTRACTOR"]["TAR"]["EXTRACTSUFFIX"]   = "-y -ttar -oc:."
+            
+        # here can add some other Windows tools, that can handle the archive files
+        # but I don't know which ones can handle all file types
+
+        
         
     # read the tools on *nix systems and sets the default parameters
     elif env["PLATFORM"] in ["darwin", "linux", "posix"] :
