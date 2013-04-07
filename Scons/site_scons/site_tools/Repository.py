@@ -21,8 +21,8 @@ def __detect( env ) :
     
         "SVN" : {
             
-            "RUN"       : "",
-            "CHECKOUT"  : "",
+            "RUN"       : "svn",
+            "CHECKOUT"  : "${REPOSITORY['GIT']['RUN']} checkout $SOURCE ${TARGET.abspath}",
             "UPDATE"    : "",
             "COMMIT"    : "",
             
@@ -75,6 +75,14 @@ def __GitPullMessage( s, target, source, env ) :
 def __GitCommitMessage( s, target, source, env ) : 
     print "Git commit with message [%s] ..." % (target[0])
 
+# creates the output message for SVN checkout
+# @param s original message
+# @param target target name
+# @param source source name
+# @param env environment object
+def __SVNCheckoutMessage( s, target, source, env ) : 
+    print "SVN Checkout [%s] into [%s] ..." % (source[0], target[0])
+
 
 
 
@@ -87,8 +95,10 @@ def generate( env ) :
     env["BUILDERS"]["GitPull"]    = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['PULL']}"),  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitPullMessage )
     env["BUILDERS"]["GitCommit"]  = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['COMMIT']}"),  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCommitMessage )
 
+    env["BUILDERS"]["SVNCheckout"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['CHECKOUT']}"),  target_factory = SCons.Node.FS.Dir,  source_factory = SCons.Node.Python.Value,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCheckoutMessage )
 
 # existing function of the builder
+# @param env environment object
 # @return true
 def exists(env) :
     return 1

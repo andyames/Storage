@@ -74,14 +74,16 @@ env = Environment( tools = ["default", "URLDownload", "Unpack", "Repository"], E
 
 # uses URLDownload-Builder and run Unpack-Builder after download (we test it with some examples)
 #env.Unpack("lapack-extract-tgz",  env.URLDownload( "lapack-download", LaPack_DownloadURL() ) )
-
 #env.Unpack("lua-extract-zip",  env.URLDownload( "lua-download-zip", "http://downloads.sourceforge.net/project/luabinaries/5.2.1/Docs%20and%20Sources/lua-5.2.1_Sources.zip?r=http%3A%2F%2Fluabinaries.sourceforge.net%2Fdownload.html&ts=1365282098&use_mirror=netcologne" ) )
-
 #env.Unpack("lua-extract-gz",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
-
 #env.Unpack("boost-extract-bz2",  env.URLDownload( "boost-download", Boost_DownloadURL() ) )
 
-# uses Repository-Builder for management SVN & Git repositories
+
+# uses Repository-Builder for management Git repositories
 #env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
 #env.GitPull("xxx", "gittest")
-env.GitCommit("first test commit 1234", "gittest")
+#env.GitCommit("first test commit 1234", "gittest")
+
+
+# uses Repository-Builder for management SVN repositories
+env.SVNCheckout("svntest", "https://plugins.svn.wordpress.org/evalphp")

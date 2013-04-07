@@ -8,4 +8,5 @@
 lapack*
 lua*
 boost*
-git*
+gittest*
+svntest*

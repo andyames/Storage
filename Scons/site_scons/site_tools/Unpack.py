@@ -387,6 +387,7 @@ def generate( env ) :
 
 
 # existing function of the builder
+# @param env environment object
 # @return true
 def exists(env) :
     return 1
