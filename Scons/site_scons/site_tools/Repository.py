@@ -22,7 +22,7 @@ def __detect( env ) :
         "SVN" : {
             
             "RUN"       : "svn",
-            "CHECKOUT"  : "${REPOSITORY['GIT']['RUN']} checkout $SOURCE ${TARGET.abspath}",
+            "CHECKOUT"  : "${REPOSITORY['SVN']['RUN']} checkout $SOURCE ${TARGET.abspath}",
             "UPDATE"    : "",
             "COMMIT"    : "",
             
