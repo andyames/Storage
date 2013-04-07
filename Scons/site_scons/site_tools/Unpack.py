@@ -3,7 +3,7 @@
 # The Unpack Builder can be used for unpacking archives (eg Zip, TGZ, BZ, ... ).
 # The emitter of the Builder reads the archive data and creates a returning file list
 # the builder extract the archive. The environment variable stores a dictionary "UNPACK"
-# for setting different extractions:
+# for set different extractions (subdict "EXTRACTOR"):
 # {
 #   PRIORITY      => a value for setting the extractor order (lower numbers = extractor is used earlier)
 #   SUFFIX        => defines a list with file suffixes, which should be handled with this extractor
@@ -19,6 +19,8 @@
 #                    second line content) and must return a string with the file / dir path (other value types
 #                    will be ignored)
 # }
+# Other options in the UNPACK dictionary are:
+#   VIWEXTRACTOUTPUT=> shows the output messages of the extraction command (default False)
 # The file which is handled by the first suffix match of the extractor, the extractor list can be append for other files.
 # The order of the extractor dictionary creates the listing & extractor command eg file extension .tar.gz should be
 # before .gz, because the tar.gz is extract in one shoot
@@ -89,82 +91,85 @@ def __fileextractor_win_7zip_single( count, no, i ) :
 # @param env environment object
 def __detect( env ) :
     toolset = { 
-        "TARGZ" : {
-            "PRIORITY"       : 0,
-            "SUFFIX"         : [".tar.gz", ".tgz", ".tar.gzip"],
-            "EXTRACTSUFFIX"  : "",
-            "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARGZ']['EXTRACTSUFFIX']}",
-            "RUN"            : "",
-            "LISTCMD"        : "${UNPACK['TARGZ']['RUN']} ${UNPACK['TARGZ']['LISTFLAGS']} $SOURCE ${UNPACK['TARGZ']['LISTSUFFIX']}",
-            "LISTSUFFIX"     : "",
-            "LISTFLAGS"      : "",
-            "LISTEXTRACTOR"  : None
-        },
+        "VIWEXTRACTOUTPUT" : False,
+        "EXTRACTOR" : { 
+            "TARGZ" : {
+                "PRIORITY"       : 0,
+                "SUFFIX"         : [".tar.gz", ".tgz", ".tar.gzip"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['TARGZ']['RUN']} ${UNPACK['EXTRACTOR']['TARGZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TARGZ']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['TARGZ']['RUN']} ${UNPACK['EXTRACTOR']['TARGZ']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TARGZ']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            },
 
-        "TARBZ" : {
-            "PRIORITY"       : 0,
-            "SUFFIX"         : [".tar.bz", ".tbz", ".tar.bz2", ".tar.bzip2", ".tar.bzip"],
-            "EXTRACTSUFFIX"  : "",
-            "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "${UNPACK['TARBZ']['RUN']} ${UNPACK['TARBZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TARBZ']['EXTRACTSUFFIX']}",
-            "RUN"            : "",
-            "LISTCMD"        : "${UNPACK['TARBZ']['RUN']} ${UNPACK['TARBZ']['LISTFLAGS']} $SOURCE ${UNPACK['TARBZ']['LISTSUFFIX']}",
-            "LISTSUFFIX"     : "",
-            "LISTFLAGS"      : "",
-            "LISTEXTRACTOR"  : None
-        },
+            "TARBZ" : {
+                "PRIORITY"       : 0,
+                "SUFFIX"         : [".tar.bz", ".tbz", ".tar.bz2", ".tar.bzip2", ".tar.bzip"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['TARBZ']['RUN']} ${UNPACK['EXTRACTOR']['TARBZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TARBZ']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['TARBZ']['RUN']} ${UNPACK['EXTRACTOR']['TARBZ']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TARBZ']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            },
 
-        "BZIP" : {
-            "PRIORITY"       : 1,
-            "SUFFIX"         : [".bz", "bzip", ".bz2", ".bzip2"],
-            "EXTRACTSUFFIX"  : "",
-            "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "${UNPACK['BZIP']['RUN']} ${UNPACK['BZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['BZIP']['EXTRACTSUFFIX']}",
-            "RUN"            : "",
-            "LISTCMD"        : "${UNPACK['BZIP']['RUN']} ${UNPACK['BZIP']['LISTFLAGS']} $SOURCE ${UNPACK['BZIP']['LISTSUFFIX']}",
-            "LISTSUFFIX"     : "",
-            "LISTFLAGS"      : "",
-            "LISTEXTRACTOR"  : None
-        },
+            "BZIP" : {
+                "PRIORITY"       : 1,
+                "SUFFIX"         : [".bz", "bzip", ".bz2", ".bzip2"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['BZIP']['RUN']} ${UNPACK['EXTRACTOR']['BZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['BZIP']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['BZIP']['RUN']} ${UNPACK['EXTRACTOR']['BZIP']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['BZIP']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            },
 
-        "GZIP" : {
-            "PRIORITY"       : 1,
-            "SUFFIX"         : [".gz", ".gzip"],
-            "EXTRACTSUFFIX"  : "",
-            "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "${UNPACK['GZIP']['RUN']} ${UNPACK['GZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['GZIP']['EXTRACTSUFFIX']}",
-            "RUN"            : "",
-            "LISTCMD"        : "${UNPACK['GZIP']['RUN']} ${UNPACK['GZIP']['LISTFLAGS']} $SOURCE ${UNPACK['GZIP']['LISTSUFFIX']}",
-            "LISTSUFFIX"     : "",
-            "LISTFLAGS"      : "",
-            "LISTEXTRACTOR"  : None
-        },
+            "GZIP" : {
+                "PRIORITY"       : 1,
+                "SUFFIX"         : [".gz", ".gzip"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['GZIP']['RUN']} ${UNPACK['GZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['GZIP']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['GZIP']['RUN']} ${UNPACK['GZIP']['LISTFLAGS']} $SOURCE ${UNPACK['GZIP']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            },
 
-        "TAR" : {
-            "PRIORITY"       : 1,
-            "SUFFIX"         : [".tar"],
-            "EXTRACTSUFFIX"  : "",
-            "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "${UNPACK['TAR']['RUN']} ${UNPACK['TAR']['EXTRACTFLAGS']} $SOURCE ${UNPACK['TAR']['EXTRACTSUFFIX']}",
-            "RUN"            : "",
-            "LISTCMD"        : "${UNPACK['TAR']['RUN']} ${UNPACK['TAR']['LISTFLAGS']} $SOURCE ${UNPACK['TAR']['LISTSUFFIX']}",
-            "LISTSUFFIX"     : "",
-            "LISTFLAGS"      : "",
-            "LISTEXTRACTOR"  : None
-        },
+            "TAR" : {
+                "PRIORITY"       : 1,
+                "SUFFIX"         : [".tar"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['TAR']['RUN']} ${UNPACK['EXTRACTOR']['TAR']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TAR']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['TAR']['RUN']} ${UNPACK['EXTRACTOR']['TAR']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TAR']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            },
 
-        "ZIP" : {
-            "PRIORITY"       : 1,
-            "SUFFIX"         : [".zip"],
-            "EXTRACTSUFFIX"  : "",
-            "EXTRACTFLAGS"   : "",
-            "EXTRACTCMD"     : "${UNPACK['ZIP']['RUN']} ${UNPACK['ZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['ZIP']['EXTRACTSUFFIX']}",
-            "RUN"            : "",
-            "LISTCMD"        : "${UNPACK['ZIP']['RUN']} ${UNPACK['ZIP']['LISTFLAGS']} $SOURCE ${UNPACK['ZIP']['LISTSUFFIX']}",
-            "LISTSUFFIX"     : "",
-            "LISTFLAGS"      : "",
-            "LISTEXTRACTOR"  : None
+            "ZIP" : {
+                "PRIORITY"       : 1,
+                "SUFFIX"         : [".zip"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['ZIP']['RUN']} ${UNPACK['EXTRACTOR']['ZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['ZIP']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['ZIP']['RUN']} ${UNPACK['EXTRACTOR']['ZIP']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['ZIP']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            }
         }
     }
 
@@ -172,72 +177,72 @@ def __detect( env ) :
     if env["PLATFORM"] <> "darwin" and "win" in env["PLATFORM"] :
         
         if env.WhereIs("7z") :
-            toolset["TARGZ"]["RUN"]           = "7z"
-            toolset["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
-            toolset["TARGZ"]["LISTFLAGS"]     = "x"
-            toolset["TARGZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['TARGZ']['RUN']} l -sii -ttar -y -so"
-            toolset["TARGZ"]["EXTRACTFLAGS"]  = "x"
-            toolset["TARGZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['TARGZ']['RUN']} x -sii -ttar -y -oc:."
+            toolset["EXTRACTOR"]["TARGZ"]["RUN"]           = "7z"
+            toolset["EXTRACTOR"]["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
+            toolset["EXTRACTOR"]["TARGZ"]["LISTFLAGS"]     = "x"
+            toolset["EXTRACTOR"]["TARGZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} l -sii -ttar -y -so"
+            toolset["EXTRACTOR"]["TARGZ"]["EXTRACTFLAGS"]  = "x"
+            toolset["EXTRACTOR"]["TARGZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:."
             
-            toolset["TARBZ"]["RUN"]           = "7z"
-            toolset["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
-            toolset["TARBZ"]["LISTFLAGS"]     = "x"
-            toolset["TARBZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['TARGZ']['RUN']} l -sii -ttar -y -so"
-            toolset["TARBZ"]["EXTRACTFLAGS"]  = "x"
-            toolset["TARBZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['TARGZ']['RUN']} x -sii -ttar -y -oc:."
+            toolset["EXTRACTOR"]["TARBZ"]["RUN"]           = "7z"
+            toolset["EXTRACTOR"]["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
+            toolset["EXTRACTOR"]["TARBZ"]["LISTFLAGS"]     = "x"
+            toolset["EXTRACTOR"]["TARBZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} l -sii -ttar -y -so"
+            toolset["EXTRACTOR"]["TARBZ"]["EXTRACTFLAGS"]  = "x"
+            toolset["EXTRACTOR"]["TARBZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:."
             
-            toolset["ZIP"]["RUN"]             = "7z"
-            toolset["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_double
-            toolset["ZIP"]["LISTFLAGS"]       = "l"
-            toolset["ZIP"]["LISTSUFFIX"]      = "-y -so"
-            toolset["ZIP"]["EXTRACTFLAGS"]    = "x"
-            toolset["ZIP"]["EXTRACTSUFFIX"]   = "-y -oc:."
+            toolset["EXTRACTOR"]["ZIP"]["RUN"]             = "7z"
+            toolset["EXTRACTOR"]["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_double
+            toolset["EXTRACTOR"]["ZIP"]["LISTFLAGS"]       = "l"
+            toolset["EXTRACTOR"]["ZIP"]["LISTSUFFIX"]      = "-y -so"
+            toolset["EXTRACTOR"]["ZIP"]["EXTRACTFLAGS"]    = "x"
+            toolset["EXTRACTOR"]["ZIP"]["EXTRACTSUFFIX"]   = "-y -oc:."
             
-            toolset["TAR"]["RUN"]             = "7z"
-            toolset["TAR"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_single
-            toolset["TAR"]["LISTFLAGS"]       = "l"
-            toolset["TAR"]["LISTSUFFIX"]      = "-y -ttar -so"
-            toolset["TAR"]["EXTRACTFLAGS"]    = "x"
-            toolset["TAR"]["EXTRACTSUFFIX"]   = "-y -ttar -oc:."
+            toolset["EXTRACTOR"]["TAR"]["RUN"]             = "7z"
+            toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_single
+            toolset["EXTRACTOR"]["TAR"]["LISTFLAGS"]       = "l"
+            toolset["EXTRACTOR"]["TAR"]["LISTSUFFIX"]      = "-y -ttar -so"
+            toolset["EXTRACTOR"]["TAR"]["EXTRACTFLAGS"]    = "x"
+            toolset["EXTRACTOR"]["TAR"]["EXTRACTSUFFIX"]   = "-y -ttar -oc:."
         
     # read the tools on *nix systems and sets the default parameters
     elif env["PLATFORM"] in ["darwin", "linux", "posix"] :
 
         if env.WhereIs("unzip") :
-            toolset["ZIP"]["RUN"]             = "unzip"
-            toolset["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_unzip
-            toolset["TAR"]["LISTFLAGS"]       = "-l"
-            toolset["ZIP"]["EXTRACTFLAGS"]    = "-oqq"
+            toolset["EXTRACTOR"]["ZIP"]["RUN"]             = "unzip"
+            toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_unzip
+            toolset["EXTRACTOR"]["TAR"]["LISTFLAGS"]       = "-l"
+            toolset["EXTRACTOR"]["ZIP"]["EXTRACTFLAGS"]    = "-oqq"
 
         if env.WhereIs("tar") :
-            toolset["TAR"]["RUN"]             = "tar"
-            toolset["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_tar
-            toolset["TAR"]["LISTFLAGS"]       = "tvf"
-            toolset["TAR"]["EXTRACTFLAGS"]    = "xf"
+            toolset["EXTRACTOR"]["TAR"]["RUN"]             = "tar"
+            toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_tar
+            toolset["EXTRACTOR"]["TAR"]["LISTFLAGS"]       = "tvf"
+            toolset["EXTRACTOR"]["TAR"]["EXTRACTFLAGS"]    = "xf"
 
-            toolset["TARGZ"]["RUN"]           = "tar"
-            toolset["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
-            toolset["TARGZ"]["EXTRACTFLAGS"]  = "xfz"
-            toolset["TARGZ"]["LISTFLAGS"]     = "tvfz"
+            toolset["EXTRACTOR"]["TARGZ"]["RUN"]           = "tar"
+            toolset["EXTRACTOR"]["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
+            toolset["EXTRACTOR"]["TARGZ"]["EXTRACTFLAGS"]  = "xfz"
+            toolset["EXTRACTOR"]["TARGZ"]["LISTFLAGS"]     = "tvfz"
 
-            toolset["TARBZ"]["RUN"]           = "tar"
-            toolset["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
-            toolset["TARBZ"]["EXTRACTFLAGS"]  = "xfj"
-            toolset["TARBZ"]["LISTFLAGS"]     = "tvfj"
+            toolset["EXTRACTOR"]["TARBZ"]["RUN"]           = "tar"
+            toolset["EXTRACTOR"]["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
+            toolset["EXTRACTOR"]["TARBZ"]["EXTRACTFLAGS"]  = "xfj"
+            toolset["EXTRACTOR"]["TARBZ"]["LISTFLAGS"]     = "tvfj"
             
         if env.WhereIs("bzip2") :
-            toolset["BZIP"]["RUN"]            = "bzip2"
-            toolset["BZIP"]["EXTRACTFLAGS"]   = "-df"
+            toolset["EXTRACTOR"]["BZIP"]["RUN"]            = "bzip2"
+            toolset["EXTRACTOR"]["BZIP"]["EXTRACTFLAGS"]   = "-df"
 
         if env.WhereIs("gzip") :
-            toolset["GZIP"]["RUN"]            = "gzip"
-            toolset["GZIP"]["LISTEXTRACTOR"]  = __fileextractor_nix_gzip
-            toolset["GZIP"]["LISTFLAGS"]      = "-l"
-            toolset["GZIP"]["EXTRACTFLAGS"]   = "-df"
+            toolset["EXTRACTOR"]["GZIP"]["RUN"]            = "gzip"
+            toolset["EXTRACTOR"]["GZIP"]["LISTEXTRACTOR"]  = __fileextractor_nix_gzip
+            toolset["EXTRACTOR"]["GZIP"]["LISTFLAGS"]      = "-l"
+            toolset["EXTRACTOR"]["GZIP"]["EXTRACTFLAGS"]   = "-df"
 
     else :
         raise SCons.Errors.StopError("Unpack tool detection on this platform [%s] unkown" % (env["PLATFORM"]))
-
+    
     env.Replace(UNPACK = toolset)
 
 
@@ -248,7 +253,7 @@ def __detect( env ) :
 def __getExtractor( source, env ) :
     # we check each unpacker and get the correc  list command first, run the command and
     # replace the target filelist with the list values, we sorte the extractors by their priority
-    for unpackername, extractor in sorted(env["UNPACK"].iteritems(), key = lambda (k,v) : (v["PRIORITY"],k)):
+    for unpackername, extractor in sorted(env["UNPACK"]["EXTRACTOR"].iteritems(), key = lambda (k,v) : (v["PRIORITY"],k)):
         
         # if the run command not set, we continue the extractor search, otherwise we check the extractor parameters
         if not SCons.Util.is_String(extractor["RUN"]) :
@@ -275,7 +280,7 @@ def __getExtractor( source, env ) :
         for suffix in extractor["SUFFIX"] :
             if str(source[0]).lower()[-len(suffix):] == suffix.lower() :
                 return extractor
-
+    
     return None 
 
 
@@ -302,8 +307,15 @@ def __action( target, source, env ) :
         raise SCons.Errors.StopError( "the extractor command for the source file [%s] is empty" % (source[0]) )
 
     # build it now (we need the shell, because some programs need it)
+    handle = None
     cmd    = env.subst(extractor["EXTRACTCMD"], source=source, target=target)
-    handle = subprocess.Popen( cmd, shell=True )
+    
+    if env["UNPACK"]["VIWEXTRACTOUTPUT"] :
+        handle  = subprocess.Popen( cmd, shell=True )
+    else :
+        devnull = open(os.devnull, "wb")
+        handle  = subprocess.Popen( cmd, shell=True, stdout=devnull )
+    
     if handle.wait() <> 0 :
         raise SCons.Errors.BuildError( "error running extractor [%s] on the source [%s]" % (cmd, source[0])  )
 
