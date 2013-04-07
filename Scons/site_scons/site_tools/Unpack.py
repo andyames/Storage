@@ -63,23 +63,13 @@ def __fileextractor_nix_unzip( count, no, i ) :
         return None
     return i.split()[-1]
     
-# extractor function for 7-Zip (double packed files eg .tar.gz)
+# extractor function for 7-Zip
 # @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_win_7zip_double( count, no, i ) :
+def __fileextractor_win_7zip( count, no, i ) :
     item = i.split()
-    if len(item) == 6 and item[-1].lower() <> "folders" and item[-3].lower() <> "files" and item[-1].lower() <> "Name" :
-        return item[-1]
-    return None
-    
-# extractor function for 7-Zip (single packed files eg .tar)
-# @param count number of returning lines
-# @param no number of the output line
-# @param i line content
-def __fileextractor_win_7zip_single( count, no, i ) :
-    item = i.split()
-    if len(item) == 7 and item[-1].lower() <> "Name" :
+    if no > 8 and no < count - 2 :
         return item[-1]
     return None
 
@@ -178,28 +168,42 @@ def __detect( env ) :
         
         if env.WhereIs("7z") :
             toolset["EXTRACTOR"]["TARGZ"]["RUN"]           = "7z"
-            toolset["EXTRACTOR"]["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
+            toolset["EXTRACTOR"]["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["TARGZ"]["LISTFLAGS"]     = "x"
             toolset["EXTRACTOR"]["TARGZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} l -sii -ttar -y -so"
             toolset["EXTRACTOR"]["TARGZ"]["EXTRACTFLAGS"]  = "x"
             toolset["EXTRACTOR"]["TARGZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:."
             
             toolset["EXTRACTOR"]["TARBZ"]["RUN"]           = "7z"
-            toolset["EXTRACTOR"]["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
+            toolset["EXTRACTOR"]["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["TARBZ"]["LISTFLAGS"]     = "x"
             toolset["EXTRACTOR"]["TARBZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} l -sii -ttar -y -so"
             toolset["EXTRACTOR"]["TARBZ"]["EXTRACTFLAGS"]  = "x"
             toolset["EXTRACTOR"]["TARBZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:."
             
+            toolset["EXTRACTOR"]["BZIP"]["RUN"]            = "7z"
+            toolset["EXTRACTOR"]["BZIP"]["LISTEXTRACTOR"]  = __fileextractor_win_7zip
+            toolset["EXTRACTOR"]["BZIP"]["LISTFLAGS"]      = "l"
+            toolset["EXTRACTOR"]["BZIP"]["LISTSUFFIX"]     = "-y -so"
+            toolset["EXTRACTOR"]["BZIP"]["EXTRACTFLAGS"]   = "x"
+            toolset["EXTRACTOR"]["BZIP"]["EXTRACTSUFFIX"]  = "-y -oc:."
+            
+            toolset["EXTRACTOR"]["GZIP"]["RUN"]            = "7z"
+            toolset["EXTRACTOR"]["GZIP"]["LISTEXTRACTOR"]  = __fileextractor_win_7zip
+            toolset["EXTRACTOR"]["GZIP"]["LISTFLAGS"]      = "l"
+            toolset["EXTRACTOR"]["GZIP"]["LISTSUFFIX"]     = "-y -so"
+            toolset["EXTRACTOR"]["GZIP"]["EXTRACTFLAGS"]   = "x"
+            toolset["EXTRACTOR"]["GZIP"]["EXTRACTSUFFIX"]  = "-y -oc:."
+            
             toolset["EXTRACTOR"]["ZIP"]["RUN"]             = "7z"
-            toolset["EXTRACTOR"]["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_double
+            toolset["EXTRACTOR"]["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["ZIP"]["LISTFLAGS"]       = "l"
             toolset["EXTRACTOR"]["ZIP"]["LISTSUFFIX"]      = "-y -so"
             toolset["EXTRACTOR"]["ZIP"]["EXTRACTFLAGS"]    = "x"
             toolset["EXTRACTOR"]["ZIP"]["EXTRACTSUFFIX"]   = "-y -oc:."
             
             toolset["EXTRACTOR"]["TAR"]["RUN"]             = "7z"
-            toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_single
+            toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["TAR"]["LISTFLAGS"]       = "l"
             toolset["EXTRACTOR"]["TAR"]["LISTSUFFIX"]      = "-y -ttar -so"
             toolset["EXTRACTOR"]["TAR"]["EXTRACTFLAGS"]    = "x"
