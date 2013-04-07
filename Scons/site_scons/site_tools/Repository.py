@@ -23,7 +23,7 @@ def __detect( env ) :
             
             "RUN"       : "svn",
             "CHECKOUT"  : "${REPOSITORY['SVN']['RUN']} checkout $SOURCE ${TARGET.abspath}",
-            "UPDATE"    : "",
+            "UPDATE"    : "${REPOSITORY['SVN']['RUN']} update ${SOURCE.abspath}",
             "COMMIT"    : "",
             
         },
@@ -82,6 +82,14 @@ def __GitCommitMessage( s, target, source, env ) :
 # @param env environment object
 def __SVNCheckoutMessage( s, target, source, env ) : 
     print "SVN Checkout [%s] into [%s] ..." % (source[0], target[0])
+    
+# creates the output message for SVN update
+# @param s original message
+# @param target target name
+# @param source source name
+# @param env environment object
+def __SVNUpdateMessage( s, target, source, env ) : 
+    print "SVN Update [%s] ..." % (source[0])
 
 
 
@@ -91,11 +99,13 @@ def __SVNCheckoutMessage( s, target, source, env ) :
 def generate( env ) :
     __detect(env)
 
+    # add for each "general" command an own builder
     env["BUILDERS"]["GitClone"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['CLONE']}"),  target_factory = SCons.Node.FS.Dir,  source_factory = SCons.Node.Python.Value,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCloneMessage )
     env["BUILDERS"]["GitPull"]    = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['PULL']}"),  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitPullMessage )
     env["BUILDERS"]["GitCommit"]  = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['COMMIT']}"),  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCommitMessage )
 
     env["BUILDERS"]["SVNCheckout"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['CHECKOUT']}"),  target_factory = SCons.Node.FS.Dir,  source_factory = SCons.Node.Python.Value,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCheckoutMessage )
+    env["BUILDERS"]["SVNUpdate"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['UPDATE']}"),  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNUpdateMessage )
 
 # existing function of the builder
 # @param env environment object
