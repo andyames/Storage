@@ -2,8 +2,8 @@
 
 # === Test Script for the Builder ===============
 
-import urllib2
-import re
+import urllib2, re
+import SCons.Errors
 
 
 # test URL Downloadbuilder with LAPack, we use a normal
@@ -23,7 +23,7 @@ def LaPack_DownloadURL() :
 
 # test URL Downloadbuilder with LUA, we use a normal
 # Python function for getting the latest download URL
-def LUA_DownloadURL()  :
+def LUA_DownloadURL() :
     # read download path of the LUA library (latest version)
     f = urllib2.urlopen("http://www.lua.org/download.html")
     html = f.read()
@@ -31,12 +31,38 @@ def LUA_DownloadURL()  :
 
     found = re.search("<a href=\"ftp/lua-(.*)\.tar\.gz\">", html, re.IGNORECASE)
     if found == None :
-        raise RuntimeError("LUA Download URL not found")
+        raise SCons.Errors.StopError("LUA Download URL not found")
 
     downloadurl = found.group(0).replace("\"", "").replace("<", "").replace(">", "")
     downloadurl = re.sub(r'(?i)a href=', "", downloadurl)
 
     return "http://www.lua.org/" + downloadurl
+
+
+# test URL Downloadbuilder with Boost, we use a normal
+# Python function for getting the latest download URL
+def Boost_DownloadURL() :
+    # read download path of the Boost (latest version)
+    f = urllib2.urlopen("http://www.boost.org/users/download/")
+    html = f.read()
+    f.close()
+
+    found = re.search("<a href=\"https://sourceforge.net/projects/boost/files/boost/(.*)\">Download</a>", html)
+    if found == None :
+        raise SCons.Errors.StopError("Boost Download URL not found")
+
+        
+    # read url of the tar.bz2
+    f = urllib2.urlopen( found.group(0).replace("<a href=\"", "").replace("\">Download</a>", "") )
+    html = f.read()
+    f.close()
+
+    found = re.search("http://sourceforge.net/projects/boost/files/boost/(.*).tar.bz2/download", html)
+    if found == None :
+        raise SCons.Errors.StopError("Boost file Download URL not found")
+
+    # create download URL
+    return "http://downloads.sourceforge.net/project/boost/boost/"+found.group(1)+".tar.bz2"     
 
 
 
@@ -45,7 +71,12 @@ def LUA_DownloadURL()  :
 # test Scons script with my builders + create environment
 env = Environment( tools = ["default", "URLDownload", "Unpack"] )
 
-# uses URLDownload-Builder and run Unpack-Builder after download
-env.Unpack("lapack-extract",  env.URLDownload( "lapack-download", LaPack_DownloadURL() ) )
-#env.Unpack("lua-extract",  env.URLDownload( "lua-download.zip", "http://downloads.sourceforge.net/project/luabinaries/5.2.1/Docs%20and%20Sources/lua-5.2.1_Sources.zip?r=http%3A%2F%2Fluabinaries.sourceforge.net%2Fdownload.html&ts=1365282098&use_mirror=netcologne", URLDOWNLOAD_USEURLFILENAME=False ) )
-#env.Unpack("lua-extract",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
+
+# uses URLDownload-Builder and run Unpack-Builder after download (we test it with some examples)
+#env.Unpack("lapack-extract-tgz",  env.URLDownload( "lapack-download", LaPack_DownloadURL() ) )
+
+#env.Unpack("lua-extract-zip",  env.URLDownload( "lua-download-zip", "http://downloads.sourceforge.net/project/luabinaries/5.2.1/Docs%20and%20Sources/lua-5.2.1_Sources.zip?r=http%3A%2F%2Fluabinaries.sourceforge.net%2Fdownload.html&ts=1365282098&use_mirror=netcologne" ) )
+
+#env.Unpack("lua-extract-gz",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
+
+env.Unpack("boost-extract-bz2",  env.URLDownload( "boost-download", Boost_DownloadURL() ) )

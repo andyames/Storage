@@ -5,12 +5,13 @@
 # the builder extract the archive. The environment variable stores a dictionary "UNPACK"
 # for setting different extractions:
 # {
-#   SUFFIX => defines a list with file suffixes, which should be handled with this extractor
-#   EXTRACTFLAGS => a string parameter for the RUN command for extracting the data
-#   EXTRACTCMD => full extract command of the builder
-#   RUN => the main program which will be started (if the parameter is empty, the extractor will be ignored)
-#   LISTCMD => the listing command for the emitter
-#   LISTFLAGS => the string options for the RUN command for showing a list of files
+#   PRIORITY      => a value for setting the extractor order (lower numbers = extractor is used earlier)
+#   SUFFIX        => defines a list with file suffixes, which should be handled with this extractor
+#   EXTRACTFLAGS  => a string parameter for the RUN command for extracting the data
+#   EXTRACTCMD    => full extract command of the builder
+#   RUN           => the main program which will be started (if the parameter is empty, the extractor will be ignored)
+#   LISTCMD       => the listing command for the emitter
+#   LISTFLAGS     => the string options for the RUN command for showing a list of files
 #   LISTEXTRACTOR => a optional Python function, that is called on each output line of the
 #                    LISTCMD for extracting file & dir names, the function need two parameters (first line number,
 #                    second line content) and must return a string with the file / dir path (other value types
@@ -65,6 +66,7 @@ def __fileextractor_nix_unzip( count, no, i ) :
 def __detect( env ) :
     toolset = { 
         "TARGZ" : {
+            "PRIORITY"       : 0,
             "SUFFIX"         : [".tar.gz", ".tgz", ".tar.gzip"],
             "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
@@ -76,6 +78,7 @@ def __detect( env ) :
         },
 
         "TARBZ" : {
+            "PRIORITY"       : 0,
             "SUFFIX"         : [".tar.bz", ".tbz", ".tar.bz2", ".tar.bzip2", ".tar.bzip"],
             "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
@@ -87,6 +90,7 @@ def __detect( env ) :
         },
 
         "BZIP" : {
+            "PRIORITY"       : 1,
             "SUFFIX"         : [".bz", "bzip", ".bz2", ".bzip2"],
             "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
@@ -98,6 +102,7 @@ def __detect( env ) :
         },
 
         "GZIP" : {
+            "PRIORITY"       : 1,
             "SUFFIX"         : [".gz", ".gzip"],
             "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
@@ -109,6 +114,7 @@ def __detect( env ) :
         },
 
         "TAR" : {
+            "PRIORITY"       : 1,
             "SUFFIX"         : [".tar"],
             "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
@@ -120,6 +126,7 @@ def __detect( env ) :
         },
 
         "ZIP" : {
+            "PRIORITY"       : 1,
             "SUFFIX"         : [".zip"],
             "EXTRACTSUFFIX"  : "",
             "EXTRACTFLAGS"   : "",
@@ -187,10 +194,9 @@ def __NonExist2Val( val, empty ) :
 # @param env environment object
 # @return extractor entry or None on non existing
 def __getExtractor( source, env ) :
-    # we check each unpacker and get the correct
-    # list command first, run the command and
-    # replace the target filelist with the list values
-    for unpackername, extractor in env["UNPACK"].iteritems() :
+    # we check each unpacker and get the correc  list command first, run the command and
+    # replace the target filelist with the list values, we sorte the extractors by their priority
+    for unpackername, extractor in sorted(env["UNPACK"].iteritems(), key = lambda (k,v) : (v["PRIORITY"],k)):
         
         # if the run command not set, we continue the extractor search, otherwise we check the extractor parameters
         if not SCons.Util.is_String(extractor["RUN"]) :
@@ -282,7 +288,7 @@ def __emitter( target, source, env ) :
         raise SCons.Errors.StopError( "%s" % (e) )
     
     # the next line removes empty names - we need this line, otherwise an cyclic dependency error will occured
-    target = [x for x in target if not x.endswith(os.path.sep)]
+    target = [i for i in target if not i.endswith(os.path.sep)]
     
     return target, source
 
