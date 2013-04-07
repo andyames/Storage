@@ -163,7 +163,7 @@ def __detect( env ) :
             toolset["TARGZ"]["RUN"]           = "7z"
             toolset["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip
             toolset["TARGZ"]["LISTFLAGS"]     = "x"
-            toolset["TARGZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['TARGZ']['RUN']} l -sii -ttar -y -so:"
+            toolset["TARGZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['TARGZ']['RUN']} l -sii -ttar -y -so"
             toolset["TARGZ"]["EXTRACTFLAGS"]  = "x"
             toolset["TARGZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['TARGZ']['RUN']} x -sii -ttar -y -oc:."
         
@@ -307,9 +307,11 @@ def __emitter( target, source, env ) :
     except Exception, e :
         raise SCons.Errors.StopError( "%s" % (e) )
     
-    # the line removes empty names - we need this line, otherwise an cyclic dependency error will occured
-    target = [i for i in target if not i.endswith(os.path.sep)]
-
+    # the line removes empty names - we need this line, otherwise an cyclic dependency error will occured,
+    # we remove also duplicated items, because the list process can create redundant data (an archive
+    # file can not store redundant content in a filepath)
+    target = list(set([i for i in target if not i.endswith(os.path.sep)]))
+    
     return target, source
 
 
