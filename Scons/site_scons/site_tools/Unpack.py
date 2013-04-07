@@ -26,10 +26,12 @@
 
 import subprocess, os
 
-import SCons.Errors
+import SCons.Errors, SCons.Warnings
 import SCons.Util
 
 
+# enables Scons warning for this builder
+SCons.Warnings.enableWarningClass(SCons.Warnings.Warning)
 
 
 # extractor function for Tar output
@@ -59,13 +61,23 @@ def __fileextractor_nix_unzip( count, no, i ) :
         return None
     return i.split()[-1]
     
-# extractor function for 7-Zip
+# extractor function for 7-Zip (double packed files eg .tar.gz)
 # @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_win_7zip( count, no, i ) :
+def __fileextractor_win_7zip_double( count, no, i ) :
     item = i.split()
-    if len(item) == 6 and item[-1] <> "folders" and item[-3] <> "files" and item[-1] <> "Name" :
+    if len(item) == 6 and item[-1].lower() <> "folders" and item[-3].lower() <> "files" and item[-1].lower() <> "Name" :
+        return item[-1]
+    return None
+    
+# extractor function for 7-Zip (single packed files eg .tar)
+# @param count number of returning lines
+# @param no number of the output line
+# @param i line content
+def __fileextractor_win_7zip_single( count, no, i ) :
+    item = i.split()
+    if len(item) == 7 and item[-1].lower() <> "Name" :
         return item[-1]
     return None
 
@@ -161,11 +173,32 @@ def __detect( env ) :
         
         if env.WhereIs("7z") :
             toolset["TARGZ"]["RUN"]           = "7z"
-            toolset["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip
+            toolset["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
             toolset["TARGZ"]["LISTFLAGS"]     = "x"
             toolset["TARGZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['TARGZ']['RUN']} l -sii -ttar -y -so"
             toolset["TARGZ"]["EXTRACTFLAGS"]  = "x"
             toolset["TARGZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['TARGZ']['RUN']} x -sii -ttar -y -oc:."
+            
+            toolset["TARBZ"]["RUN"]           = "7z"
+            toolset["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip_double
+            toolset["TARBZ"]["LISTFLAGS"]     = "x"
+            toolset["TARBZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['TARGZ']['RUN']} l -sii -ttar -y -so"
+            toolset["TARBZ"]["EXTRACTFLAGS"]  = "x"
+            toolset["TARBZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['TARGZ']['RUN']} x -sii -ttar -y -oc:."
+            
+            toolset["ZIP"]["RUN"]             = "7z"
+            toolset["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_double
+            toolset["ZIP"]["LISTFLAGS"]       = "l"
+            toolset["ZIP"]["LISTSUFFIX"]      = "-y -so"
+            toolset["ZIP"]["EXTRACTFLAGS"]    = "x"
+            toolset["ZIP"]["EXTRACTSUFFIX"]   = "-y -oc:."
+            
+            toolset["TAR"]["RUN"]             = "7z"
+            toolset["TAR"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip_single
+            toolset["TAR"]["LISTFLAGS"]       = "l"
+            toolset["TAR"]["LISTSUFFIX"]      = "-y -ttar -so"
+            toolset["TAR"]["EXTRACTFLAGS"]    = "x"
+            toolset["TAR"]["EXTRACTSUFFIX"]   = "-y -ttar -oc:."
         
     # read the tools on *nix systems and sets the default parameters
     elif env["PLATFORM"] in ["darwin", "linux", "posix"] :
@@ -274,7 +307,7 @@ def __action( target, source, env ) :
     if handle.wait() <> 0 :
         raise SCons.Errors.BuildError( "error running extractor [%s] on the source [%s]" % (cmd, source[0])  )
 
-
+        
 # emitter function for getting the files
 # within the archive
 # @param target target packed file
@@ -297,7 +330,7 @@ def __emitter( target, source, env ) :
     handle.communicate()
     if handle.returncode <> 0 :
         raise SCons.Errors.StopError("error on running list command [%s] of the source file [%s]" % (cmd, source[0]) ) 
-
+    
     # if the returning output exists and the listseperator is a callable structure
     # we run it for each line of the output and if the return of the callable is
     # a string we push it back to the target list
@@ -307,10 +340,11 @@ def __emitter( target, source, env ) :
     except Exception, e :
         raise SCons.Errors.StopError( "%s" % (e) )
     
-    # the line removes empty names - we need this line, otherwise an cyclic dependency error will occured,
-    # we remove also duplicated items, because the list process can create redundant data (an archive
-    # file can not store redundant content in a filepath)
-    target = list(set([i for i in target if not i.endswith(os.path.sep)]))
+    # the line removes duplicated names - we need this line, otherwise an cyclic dependency error will occured,
+    # because the list process can create redundant data (an archive file can not store redundant content in a filepath)
+    target = list(set(target))
+    if not target :
+        SCons.Warnings.warn(SCons.Warnings.Warning, "emitter file list on target [%s] is empty, please check your extractor list function [%s]" % (source[0], cmd) ) 
     
     return target, source
 
