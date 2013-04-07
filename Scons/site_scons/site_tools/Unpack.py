@@ -275,7 +275,6 @@ def __action( target, source, env ) :
         raise SCons.Errors.BuildError( "error running extractor [%s] on the source [%s]" % (cmd, source[0])  )
 
 
-
 # emitter function for getting the files
 # within the archive
 # @param target target packed file
@@ -294,10 +293,10 @@ def __emitter( target, source, env ) :
     # create the list command and run it in a subprocess and pipes the output to a variable
     cmd    = env.subst(extractor["LISTCMD"], source=source, target=target)
     handle = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE )
-    if handle.wait() <> 0 :
-        raise SCons.Errors.StopError("error on running list command [%s] of the source file [%s]" % (cmd, source[0]) )
     target = handle.stdout.readlines()
-       
+    handle.communicate()
+    if handle.returncode <> 0 :
+        raise SCons.Errors.StopError("error on running list command [%s] of the source file [%s]" % (cmd, source[0]) ) 
 
     # if the returning output exists and the listseperator is a callable structure
     # we run it for each line of the output and if the return of the callable is
