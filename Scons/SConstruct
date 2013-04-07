@@ -81,8 +81,7 @@ env = Environment( tools = ["default", "URLDownload", "Unpack", "Repository"], E
 
 #env.Unpack("boost-extract-bz2",  env.URLDownload( "boost-download", Boost_DownloadURL() ) )
 
-
-# huses Repository-Builder for management SVN & Git repositories
+# uses Repository-Builder for management SVN & Git repositories
 #env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
 #env.GitPull("xxx", "gittest")
-env.GitCommit("first test commit", "gittest")
+#env.GitCommit("first test commit", "gittest")

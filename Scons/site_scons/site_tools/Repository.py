@@ -4,6 +4,7 @@
 # The builder need the external command line tools for SVN & Git access,
 # so they must be installed in the system and accessiable by Scons
 
+import os
 
 #import SCons.Errors
 import SCons.Util
@@ -17,26 +18,34 @@ import SCons.Util
 # @param env environment object
 def __detect( env ) :
     env["GITPARAMETER"] = ""
-    env["SVNPARAMETER"] = ""
     
     env["REPOSITORY"] = {
     
         "SVN" : {
             
             "RUN"       : "",
-            "PULL"      : "",
-            "PUSH"      : "",
+            "CHECKOUT"  : "",
+            "UPDATE"    : "",
             "COMMIT"    : "",
             
         },
         
+        # we need the working & git dir, but for correct path seperation we store a path seperator and the Git-dir in a variable
+        # DIR       => stores relativ to the work-tree the .git directory
+        # RUN       => path to the command-line git client
+        # PARAMETER => parameter, that is added on each git call
+        # PULL      => command for pull request
+        # PUSH      => command for push request
+        # CLONE     => command for cloning
+        # COMMIT    => command for commit
         "GIT" : {
-            
+            "DIR"       : os.path.sep + ".git",
             "RUN"       : "git",
-            "PULL"      : "${REPOSITORY['GIT']['RUN']} $GITPARAMETER --work-tree=${SOURCE.abspath} pull",
-            "PUSH"      : "${REPOSITORY['GIT']['RUN']} $GITPARAMETER --work-tree=${SOURCE.abspath} push",
-            "CLONE"     : "${REPOSITORY['GIT']['RUN']} $GITPARAMETER clone $SOURCE ${TARGET.abspath}",
-            "COMMIT"    : "${REPOSITORY['GIT']['RUN']} $GITPARAMETER --work-tree=${SOURCE.abspath} add . && ${REPOSITORY['GIT']['RUN']} $GITPARAMETER --work-tree=${SOURCE.abspath} commit -m '$TARGET'"
+            "PARAMETER" : "--git-dir=${SOURCE.abspath}${REPOSITORY['GIT']['DIR']} --work-tree=${SOURCE.abspath}"
+            "PULL"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} pull",
+            "PUSH"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} push",
+            "CLONE"     : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} clone $SOURCE ${TARGET.abspath}",
+            "COMMIT"    : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} add . && ${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} commit -m '$TARGET'"
             
         }
     
@@ -44,7 +53,7 @@ def __detect( env ) :
 
 
 
-# creates the output message
+# creates the output message for Git Clone
 # @param s original message
 # @param target target name
 # @param source source name
@@ -52,9 +61,19 @@ def __detect( env ) :
 def __GitCloneMessage( s, target, source, env ) : 
     print "Git clone [%s] into [%s] ..." % (source[0], target[0])
     
+# creates the output message for Git Pull
+# @param s original message
+# @param target target name
+# @param source source name
+# @param env environment object
 def __GitPullMessage( s, target, source, env ) : 
     print "Git pull [%s] ..." % (source[0])
     
+# creates the output message for Git Commit
+# @param s original message
+# @param target target name
+# @param source source name
+# @param env environment object
 def __GitCommitMessage( s, target, source, env ) : 
     print "Git commit with message [%s] ..." % (target[0])
 
