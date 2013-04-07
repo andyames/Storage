@@ -281,7 +281,7 @@ def __emitter( target, source, env ) :
     except Exception, e :
         raise SCons.Errors.StopError( "%s" % (e) )
     
-    # the next line removes empty names
+    # the next line removes empty names - we need this line, otherwise an cyclic dependency error will occured
     target = [x for x in target if not x.endswith(os.path.sep)]
     
     return target, source
