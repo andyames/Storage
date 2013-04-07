@@ -260,7 +260,7 @@ def __emitter( target, source, env ) :
     if not extractor :
         raise SCons.Errors.StopError( "can not find any extractor value for the source file [%s]" % (source[0]) )
 
-    # we do a little trick, because the Download compiler create an empty file, so we
+    # we do a little trick, because eg the download builder creates an empty file, so we
     # return direct the target file / we return it also, if the does not exists a LISTCMD
     if source[0].get_size() == 0 or len(extractor["LISTCMD"]) == 0 :
         return target, source
