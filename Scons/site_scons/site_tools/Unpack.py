@@ -301,7 +301,7 @@ def __action( target, source, env ) :
     if len(extractor["EXTRACTCMD"]) == 0 :
         raise SCons.Errors.StopError( "the extractor command for the source file [%s] is empty" % (source[0]) )
 
-    # build it now
+    # build it now (we need the shell, because some programs need it)
     cmd    = env.subst(extractor["EXTRACTCMD"], source=source, target=target)
     handle = subprocess.Popen( cmd, shell=True )
     if handle.wait() <> 0 :
@@ -323,7 +323,8 @@ def __emitter( target, source, env ) :
     if source[0].get_size() == 0 or len(extractor["LISTCMD"]) == 0 :
         return target, source
            
-    # create the list command and run it in a subprocess and pipes the output to a variable
+    # create the list command and run it in a subprocess and pipes the output to a variable,
+    # we need the shell for reading data from the stdout
     cmd    = env.subst(extractor["LISTCMD"], source=source, target=target)
     handle = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE )
     target = handle.stdout.readlines()
