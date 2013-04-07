@@ -16,9 +16,7 @@ import SCons.Util
 # we use always abspath, because the reporitory can not work
 # without an relative path
 # @param env environment object
-def __detect( env ) :
-    env["GITPARAMETER"] = ""
-    
+def __detect( env ) :   
     env["REPOSITORY"] = {
     
         "SVN" : {
@@ -41,10 +39,10 @@ def __detect( env ) :
         "GIT" : {
             "DIR"       : os.path.sep + ".git",
             "RUN"       : "git",
-            "PARAMETER" : "--git-dir=${SOURCE.abspath}${REPOSITORY['GIT']['DIR']} --work-tree=${SOURCE.abspath}"
+            "PARAMETER" : "--git-dir=${SOURCE.abspath}${REPOSITORY['GIT']['DIR']} --work-tree=${SOURCE.abspath}",
             "PULL"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} pull",
             "PUSH"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} push",
-            "CLONE"     : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} clone $SOURCE ${TARGET.abspath}",
+            "CLONE"     : "${REPOSITORY['GIT']['RUN']} clone $SOURCE ${TARGET.abspath}",
             "COMMIT"    : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} add . && ${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} commit -m '$TARGET'"
             
         }
