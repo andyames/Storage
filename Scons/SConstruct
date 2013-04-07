@@ -2,7 +2,7 @@
 
 # === Test Script for the Builder ===============
 
-import urllib2, re
+import urllib2, re, os
 import SCons.Errors
 
 
@@ -69,7 +69,7 @@ def Boost_DownloadURL() :
 
 
 # test Scons script with my builders + create environment
-env = Environment( tools = ["default", "URLDownload", "Unpack"] )
+env = Environment( tools = ["default", "URLDownload", "Unpack"], ENV = os.environ )
 
 
 # uses URLDownload-Builder and run Unpack-Builder after download (we test it with some examples)
@@ -77,6 +77,6 @@ env = Environment( tools = ["default", "URLDownload", "Unpack"] )
 
 #env.Unpack("lua-extract-zip",  env.URLDownload( "lua-download-zip", "http://downloads.sourceforge.net/project/luabinaries/5.2.1/Docs%20and%20Sources/lua-5.2.1_Sources.zip?r=http%3A%2F%2Fluabinaries.sourceforge.net%2Fdownload.html&ts=1365282098&use_mirror=netcologne" ) )
 
-#env.Unpack("lua-extract-gz",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
+env.Unpack("lua-extract-gz",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
 
-env.Unpack("boost-extract-bz2",  env.URLDownload( "boost-download", Boost_DownloadURL() ) )
+#env.Unpack("boost-extract-bz2",  env.URLDownload( "boost-download", Boost_DownloadURL() ) )
