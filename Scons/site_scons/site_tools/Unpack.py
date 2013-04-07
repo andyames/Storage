@@ -21,7 +21,7 @@
 # before .gz, because the tar.gz is extract in one shoot
 
 
-import subprocess
+import subprocess, os
 
 import SCons.Errors
 import SCons.Util
@@ -280,6 +280,9 @@ def __emitter( target, source, env ) :
             target = filter( lambda s : SCons.Util.is_String(s), [ extractor["LISTEXTRACTOR"]( len(target), no, i) for no, i in enumerate(target) ] )
     except Exception, e :
         raise SCons.Errors.StopError( "%s" % (e) )
+    
+    # the next line removes empty names
+    target = [x for x in target if not x.endswith(os.path.sep)]
     
     return target, source
 
