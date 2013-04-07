@@ -68,7 +68,7 @@ def __emitter( target, source, env ) :
 # the filename of the URL
 # @env environment object
 def generate( env ) :
-    env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = SCons.Node.Python.Value,  PRINT_CMD_LINE_FUNC = __message )
+    env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = SCons.Node.Python.Value,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
     env.Replace(URLDOWNLOAD_USEURLFILENAME =  True )
 
 # existing function of the builder

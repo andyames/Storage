@@ -84,4 +84,5 @@ env = Environment( tools = ["default", "URLDownload", "Unpack", "Repository"], E
 
 # huses Repository-Builder for management SVN & Git repositories
 #env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
-env.GitPull("xxx", "gittest")
+#env.GitPull("xxx", "gittest")
+env.GitCommit("first test commit", "gittest")

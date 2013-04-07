@@ -383,7 +383,7 @@ def generate( env ) :
     __detect(env)
 
     # the target_factory must be a "Entry", because the target list can be files and dirs, so we can not specified the targetfactory explicite 
-    env["BUILDERS"]["Unpack"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.Entry,  source_factory = SCons.Node.FS.File,  PRINT_CMD_LINE_FUNC = __message )
+    env["BUILDERS"]["Unpack"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.Entry,  source_factory = SCons.Node.FS.File,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
 
 
 # existing function of the builder
