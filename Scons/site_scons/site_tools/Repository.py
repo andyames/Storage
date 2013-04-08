@@ -43,7 +43,8 @@ def __detect( env ) :
             "PULL"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} pull",
             "PUSH"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} push",
             "CLONE"     : "${REPOSITORY['GIT']['RUN']} clone $SOURCE ${TARGET.abspath}",
-            "COMMIT"    : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} add . && ${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} commit -m $TARGET"
+            "COMMIT"    : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} add . && ${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} commit -m $TARGET",
+            "LSREMOTE"  : "${REPOSITORY['GIT']['RUN']} ls-remote"
             
         }
     
@@ -90,6 +91,14 @@ def __SVNCheckoutMessage( s, target, source, env ) :
 # @param env environment object
 def __SVNUpdateMessage( s, target, source, env ) : 
     print "SVN Update [%s] ..." % (source[0])
+    
+# creates the output message for SVN update
+# @param s original message
+# @param target target name
+# @param source source name
+# @param env environment object
+def __SVNCommitMessage( s, target, source, env ) : 
+    print "SVN Commit [%s] ..." % (source[0])
 
 
 
@@ -106,6 +115,7 @@ def generate( env ) :
 
     env["BUILDERS"]["SVNCheckout"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['CHECKOUT']}"),  target_factory = SCons.Node.FS.Dir,  source_factory = SCons.Node.Python.Value,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCheckoutMessage )
     env["BUILDERS"]["SVNUpdate"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['UPDATE']}"),  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNUpdateMessage )
+    env["BUILDERS"]["SVNCommit"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['COMMIT']}"),  source_factory = SCons.Node.FS.File, PRINT_CMD_LINE_FUNC = __SVNCommitMessage )
 
 # existing function of the builder
 # @param env environment object
