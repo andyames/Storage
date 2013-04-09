@@ -86,6 +86,6 @@ env = Environment( tools = ["default", "URLDownload", "Unpack", "Repository"], E
 
 
 # uses Repository-Builder for management SVN repositories
-#env.SVNCheckout("svntest", "https://plugins.svn.wordpress.org/evalphp")
-#env.SVNUpdate("xxxx", "svntest")
-env.SVNCommit("commit test", "svntest")
+#env.SVNCheckout("svntest", "svn://vmgentoo/scons")
+print env.SVNUpdate("xxxx", "svntest")
+#env.SVNCommit("letzte Änderung", "svntest")

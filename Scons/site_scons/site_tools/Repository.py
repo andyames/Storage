@@ -19,13 +19,19 @@ import SCons.Util
 def __detect( env ) :   
     env["REPOSITORY"] = {
     
+        # we need some syntax data for calling the SVN client
+        # RUN       => path to the command-line svn client
+        # CHECKOUT  => checkout command
+        # UPDATE    => update command
+        # COMMIT    => command for commit
+        # LSLOCAL   => command for the emitter, for getting the file list
         "SVN" : {
             
             "RUN"       : "svn",
             "CHECKOUT"  : "${REPOSITORY['SVN']['RUN']} checkout $SOURCE ${TARGET.abspath}",
             "UPDATE"    : "${REPOSITORY['SVN']['RUN']} update ${SOURCE.abspath}",
-            "COMMIT"    : "${REPOSITORY['SVN']['RUN']} commit ${SOURCE.abspath} -m $TARGET"
-            
+            "COMMIT"    : "${REPOSITORY['SVN']['RUN']} add ${SOURCE.abspath}"+os.path.sep+"* --force && ${REPOSITORY['SVN']['RUN']} commit ${SOURCE.abspath} -m $TARGET",
+            "LSLOCAL"   : "${REPOSITORY['SVN']['RUN']} list -R ${SOURCE.abspath}"
         },
         
         # we need the working & git dir, but for correct path seperation we store a path seperator and the Git-dir in a variable
@@ -36,6 +42,7 @@ def __detect( env ) :
         # PUSH      => command for push request
         # CLONE     => command for cloning
         # COMMIT    => command for commit
+        # LSLOCAL   => command for the emitter, for getting the file list
         "GIT" : {
             "DIR"       : os.path.sep + ".git",
             "RUN"       : "git",
@@ -87,7 +94,8 @@ def __GitFileListEmitter( target, source, env ) :
     if handle.returncode <> 0 :
         raise SCons.Errors.StopError("error on running list command [%s] of the Git repository [%s]" % (cmd, source[0]) )
     
-    return target, source
+    # create unique targets so we convert the target data
+    return list(set([i.strip() for i in target])), source
         
         
 
@@ -115,6 +123,21 @@ def __SVNUpdateMessage( s, target, source, env ) :
 def __SVNCommitMessage( s, target, source, env ) : 
     print "SVN Commit [%s] ..." % (source[0])
 
+# emitter for list all local SVN files
+# @param target target file on the local drive
+# @param source URL for download
+# @env environment object
+def __SVNFileListEmitter( target, source, env ) :
+    cmd    = env.subst(env["REPOSITORY"]["SVN"]["LSLOCAL"], source=source)
+    handle = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE )
+    target = handle.stdout.readlines()
+    handle.communicate()
+    if handle.returncode <> 0 :
+        raise SCons.Errors.StopError("error on running list command [%s] of the SVN repository [%s]" % (cmd, source[0]) )
+        
+    # create unique targets so we convert the target data
+    return list(set([i.strip() for i in target])), source
+        
 
 
 # generate function, that adds the builder to the environment
@@ -124,12 +147,12 @@ def generate( env ) :
 
     # add for each "general" command an own builder
     env["BUILDERS"]["GitClone"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['CLONE']}"),  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCloneMessage )
-    env["BUILDERS"]["GitPull"]    = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['PULL']}"),  emitter = __GitFileListEmitter,  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.File,    single_source = True,  PRINT_CMD_LINE_FUNC = __GitPullMessage )
-    env["BUILDERS"]["GitCommit"]  = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['COMMIT']}"),  emitter = __GitFileListEmitter,  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.File,   single_source = True,  PRINT_CMD_LINE_FUNC = __GitCommitMessage )
+    env["BUILDERS"]["GitPull"]    = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['PULL']}"),  emitter = __GitFileListEmitter,  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitPullMessage )
+    env["BUILDERS"]["GitCommit"]  = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['COMMIT']}"),  emitter = __GitFileListEmitter,  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCommitMessage )
 
     env["BUILDERS"]["SVNCheckout"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['CHECKOUT']}"),  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCheckoutMessage )
-    env["BUILDERS"]["SVNUpdate"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['UPDATE']}"),  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.File,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNUpdateMessage )
-    env["BUILDERS"]["SVNCommit"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['COMMIT']}"),  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.File,  single_source = True, PRINT_CMD_LINE_FUNC = __SVNCommitMessage )
+    env["BUILDERS"]["SVNUpdate"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['UPDATE']}"),  emitter = __SVNFileListEmitter,  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.Entry,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNUpdateMessage )
+    env["BUILDERS"]["SVNCommit"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['COMMIT']}"),  emitter = __SVNFileListEmitter,  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.Entry,single_source = True, PRINT_CMD_LINE_FUNC = __SVNCommitMessage )
 
 # existing function of the builder
 # @param env environment object
