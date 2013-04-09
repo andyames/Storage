@@ -20,6 +20,7 @@
 #                       will be ignored)
 # }
 # Other options in the UNPACK dictionary are:
+#   STOPONEMPTYFILE  => bool variable for stoping if the file has empty size (default True)
 #   VIWEXTRACTOUTPUT => shows the output messages of the extraction command (default False)
 #   EXTRACTDIR       => path in that the data will be extracted (default #)
 #
@@ -90,6 +91,7 @@ def __fileextractor_win_7zip( env, count, no, i ) :
 # @param env environment object
 def __detect( env ) :
     toolset = { 
+        "STOPONEMPTYFILE"  : True,
         "VIWEXTRACTOUTPUT" : False,
         "EXTRACTDIR"       : ".",
         "EXTRACTOR" : { 
@@ -355,7 +357,11 @@ def __emitter( target, source, env ) :
 
     # we do a little trick, because eg the download builder creates an empty file, so we
     # return direct the target file / we return it also, if the does not exists a LISTCMD
-    if source[0].get_size() == 0 or len(extractor["LISTCMD"]) == 0 :
+    if len(extractor["LISTCMD"]) == 0 :
+        return target, source
+    elif source[0].get_size() == 0 and env["UNPACK"]["STOPONEMPTYFILE"] :
+        raise SCons.Errors.StopError( "source file is empty [%s]" % (source[0]) )
+    elif source[0].get_size() == 0 and not env["UNPACK"]["STOPONEMPTYFILE"] :
         return target, source
            
     # create the list command and run it in a subprocess and pipes the output to a variable,
@@ -385,7 +391,7 @@ def __emitter( target, source, env ) :
     # we append the extractdir to each target if is not absolut
     if env["UNPACK"]["EXTRACTDIR"] <> "." :
         target = [i if os.path.isabs(i) else os.path.join(env["UNPACK"]["EXTRACTDIR"], i) for i in target]
-
+    
     return target, source
 
 
@@ -405,4 +411,3 @@ def generate( env ) :
 # @return true
 def exists(env) :
     return 1
-    
