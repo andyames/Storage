@@ -80,12 +80,12 @@ env = Environment( tools = ["default", "URLDownload", "Unpack", "Repository"], E
 
 
 # uses Repository-Builder for management Git repositories
-#env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
+env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
 #env.GitPull("xxx", "gittest")
 #env.GitCommit("first test commit 1234", "gittest")
 
 
 # uses Repository-Builder for management SVN repositories
 #env.SVNCheckout("svntest", "svn://vmgentoo/scons")
-print env.SVNUpdate("xxxx", "svntest")
+#print env.SVNUpdate("xxxx", "svntest")
 #env.SVNCommit("letzte Änderung", "svntest")

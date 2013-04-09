@@ -96,6 +96,15 @@ def __GitFileListEmitter( target, source, env ) :
     
     # create unique targets so we convert the target data
     return list(set([i.strip() for i in target])), source
+    
+# emitter for the Git clone call for setting
+# the clean option
+# @param target target file on the local drive
+# @param source URL for download
+# @env environment object
+def __GitCloneEmitter( target, source, env ) :
+    env.Clean( target, target[0] )
+    return target, source
         
         
 
@@ -137,6 +146,15 @@ def __SVNFileListEmitter( target, source, env ) :
         
     # create unique targets so we convert the target data
     return list(set([i.strip() for i in target])), source
+    
+# emitter for the SVN checkout call for setting
+# the clean option
+# @param target target file on the local drive
+# @param source URL for download
+# @env environment object
+def __SVNCheckoutEmitter( target, source, env ) :
+    env.Clean( target, target[0] )
+    return target, source
         
 
 
@@ -146,11 +164,11 @@ def generate( env ) :
     __detect(env)
 
     # add for each "general" command an own builder
-    env["BUILDERS"]["GitClone"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['CLONE']}"),  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCloneMessage )
+    env["BUILDERS"]["GitClone"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['CLONE']}"),  emitter = __GitCloneEmitter,  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCloneMessage )
     env["BUILDERS"]["GitPull"]    = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['PULL']}"),  emitter = __GitFileListEmitter,  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitPullMessage )
     env["BUILDERS"]["GitCommit"]  = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['COMMIT']}"),  emitter = __GitFileListEmitter,  source_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCommitMessage )
 
-    env["BUILDERS"]["SVNCheckout"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['CHECKOUT']}"),  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCheckoutMessage )
+    env["BUILDERS"]["SVNCheckout"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['CHECKOUT']}"),  emitter = __SVNCheckoutEmitter,  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCheckoutMessage )
     env["BUILDERS"]["SVNUpdate"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['UPDATE']}"),  emitter = __SVNFileListEmitter,  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.Entry,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNUpdateMessage )
     env["BUILDERS"]["SVNCommit"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['COMMIT']}"),  emitter = __SVNFileListEmitter,  source_factory = SCons.Node.FS.Dir,  target_factory = SCons.Node.FS.Entry,single_source = True, PRINT_CMD_LINE_FUNC = __SVNCommitMessage )
 

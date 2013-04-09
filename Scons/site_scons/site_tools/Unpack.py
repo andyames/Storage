@@ -5,22 +5,23 @@
 # the builder extract the archive. The environment variable stores a dictionary "UNPACK"
 # for set different extractions (subdict "EXTRACTOR"):
 # {
-#   PRIORITY      => a value for setting the extractor order (lower numbers = extractor is used earlier)
-#   SUFFIX        => defines a list with file suffixes, which should be handled with this extractor
-#   EXTRACTSUFFIX => suffix of the extract command
-#   EXTRACTFLAGS  => a string parameter for the RUN command for extracting the data
-#   EXTRACTCMD    => full extract command of the builder
-#   RUN           => the main program which will be started (if the parameter is empty, the extractor will be ignored)
-#   LISTCMD       => the listing command for the emitter
-#   LISTFLAGS     => the string options for the RUN command for showing a list of files
-#   LISTSUFFIX    => suffix of the list command
-#   LISTEXTRACTOR => a optional Python function, that is called on each output line of the
-#                    LISTCMD for extracting file & dir names, the function need two parameters (first line number,
-#                    second line content) and must return a string with the file / dir path (other value types
-#                    will be ignored)
+#   PRIORITY         => a value for setting the extractor order (lower numbers = extractor is used earlier)
+#   SUFFIX           => defines a list with file suffixes, which should be handled with this extractor
+#   EXTRACTSUFFIX    => suffix of the extract command
+#   EXTRACTFLAGS     => a string parameter for the RUN command for extracting the data
+#   EXTRACTCMD       => full extract command of the builder
+#   RUN              => the main program which will be started (if the parameter is empty, the extractor will be ignored)
+#   LISTCMD          => the listing command for the emitter
+#   LISTFLAGS        => the string options for the RUN command for showing a list of files
+#   LISTSUFFIX       => suffix of the list command
+#   LISTEXTRACTOR    => a optional Python function, that is called on each output line of the
+#                       LISTCMD for extracting file & dir names, the function need two parameters (first line number,
+#                       second line content) and must return a string with the file / dir path (other value types
+#                       will be ignored)
 # }
 # Other options in the UNPACK dictionary are:
-#   VIWEXTRACTOUTPUT=> shows the output messages of the extraction command (default False)
+#   VIWEXTRACTOUTPUT => shows the output messages of the extraction command (default False)
+#   EXTRACTDIR       => path in that the data will be extracted (default #)
 #
 # The file which is handled by the first suffix match of the extractor, the extractor list can be append for other files.
 # The order of the extractor dictionary creates the listing & extractor command eg file extension .tar.gz should be
@@ -41,37 +42,41 @@ SCons.Warnings.enableWarningClass(SCons.Warnings.Warning)
 
 
 # extractor function for Tar output
+# @param env environment object
 # @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_nix_tar( count, no, i ) :
+def __fileextractor_nix_tar( env, count, no, i ) :
     return i.split()[-1]
 
 # extractor function for GZip output,
 # ignore the first line
+# @param env environment object
 # @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_nix_gzip( count, no, i ) :
+def __fileextractor_nix_gzip( env, count, no, i ) :
     if no == 0 :
         return None
     return i.split()[-1]
 
 # extractor function for Unzip output,
 # ignore the first & last two lines
+# @param env environment object
 # @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_nix_unzip( count, no, i ) :
+def __fileextractor_nix_unzip( env, count, no, i ) :
     if no < 3 or no >= count - 2 :
         return None
     return i.split()[-1]
     
 # extractor function for 7-Zip
+# @param env environment object
 # @param count number of returning lines
 # @param no number of the output line
 # @param i line content
-def __fileextractor_win_7zip( count, no, i ) :
+def __fileextractor_win_7zip( env, count, no, i ) :
     item = i.split()
     if no > 8 and no < count - 2 :
         return item[-1]
@@ -86,6 +91,7 @@ def __fileextractor_win_7zip( count, no, i ) :
 def __detect( env ) :
     toolset = { 
         "VIWEXTRACTOUTPUT" : False,
+        "EXTRACTDIR"       : ".",
         "EXTRACTOR" : { 
             "TARGZ" : {
                 "PRIORITY"       : 0,
@@ -131,9 +137,9 @@ def __detect( env ) :
                 "SUFFIX"         : [".gz", ".gzip"],
                 "EXTRACTSUFFIX"  : "",
                 "EXTRACTFLAGS"   : "",
-                "EXTRACTCMD"     : "${UNPACK['GZIP']['RUN']} ${UNPACK['GZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['GZIP']['EXTRACTSUFFIX']}",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['GZIP']['RUN']} ${UNPACK['EXTRACTOR']['GZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['GZIP']['EXTRACTSUFFIX']}",
                 "RUN"            : "",
-                "LISTCMD"        : "${UNPACK['GZIP']['RUN']} ${UNPACK['GZIP']['LISTFLAGS']} $SOURCE ${UNPACK['GZIP']['LISTSUFFIX']}",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['GZIP']['RUN']} ${UNPACK['EXTRACTOR']['GZIP']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['GZIP']['LISTSUFFIX']}",
                 "LISTSUFFIX"     : "",
                 "LISTFLAGS"      : "",
                 "LISTEXTRACTOR"  : None
@@ -176,42 +182,42 @@ def __detect( env ) :
             toolset["EXTRACTOR"]["TARGZ"]["LISTFLAGS"]     = "x"
             toolset["EXTRACTOR"]["TARGZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} l -sii -ttar -y -so"
             toolset["EXTRACTOR"]["TARGZ"]["EXTRACTFLAGS"]  = "x"
-            toolset["EXTRACTOR"]["TARGZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:."
+            toolset["EXTRACTOR"]["TARGZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:${UNPACK['EXTRACTOR']['EXTRACTDIR']}"
             
             toolset["EXTRACTOR"]["TARBZ"]["RUN"]           = "7z"
             toolset["EXTRACTOR"]["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["TARBZ"]["LISTFLAGS"]     = "x"
             toolset["EXTRACTOR"]["TARBZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} l -sii -ttar -y -so"
             toolset["EXTRACTOR"]["TARBZ"]["EXTRACTFLAGS"]  = "x"
-            toolset["EXTRACTOR"]["TARBZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:."
+            toolset["EXTRACTOR"]["TARBZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:${UNPACK['EXTRACTOR']['EXTRACTDIR']}"
             
             toolset["EXTRACTOR"]["BZIP"]["RUN"]            = "7z"
             toolset["EXTRACTOR"]["BZIP"]["LISTEXTRACTOR"]  = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["BZIP"]["LISTFLAGS"]      = "l"
             toolset["EXTRACTOR"]["BZIP"]["LISTSUFFIX"]     = "-y -so"
             toolset["EXTRACTOR"]["BZIP"]["EXTRACTFLAGS"]   = "x"
-            toolset["EXTRACTOR"]["BZIP"]["EXTRACTSUFFIX"]  = "-y -oc:."
+            toolset["EXTRACTOR"]["BZIP"]["EXTRACTSUFFIX"]  = "-y -oc:${UNPACK['EXTRACTDIR']}"
             
             toolset["EXTRACTOR"]["GZIP"]["RUN"]            = "7z"
             toolset["EXTRACTOR"]["GZIP"]["LISTEXTRACTOR"]  = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["GZIP"]["LISTFLAGS"]      = "l"
             toolset["EXTRACTOR"]["GZIP"]["LISTSUFFIX"]     = "-y -so"
             toolset["EXTRACTOR"]["GZIP"]["EXTRACTFLAGS"]   = "x"
-            toolset["EXTRACTOR"]["GZIP"]["EXTRACTSUFFIX"]  = "-y -oc:."
+            toolset["EXTRACTOR"]["GZIP"]["EXTRACTSUFFIX"]  = "-y -oc:${UNPACK['EXTRACTDIR']}"
             
             toolset["EXTRACTOR"]["ZIP"]["RUN"]             = "7z"
             toolset["EXTRACTOR"]["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["ZIP"]["LISTFLAGS"]       = "l"
             toolset["EXTRACTOR"]["ZIP"]["LISTSUFFIX"]      = "-y -so"
             toolset["EXTRACTOR"]["ZIP"]["EXTRACTFLAGS"]    = "x"
-            toolset["EXTRACTOR"]["ZIP"]["EXTRACTSUFFIX"]   = "-y -oc:."
+            toolset["EXTRACTOR"]["ZIP"]["EXTRACTSUFFIX"]   = "-y -oc:${UNPACK['EXTRACTDIR']}"
             
             toolset["EXTRACTOR"]["TAR"]["RUN"]             = "7z"
             toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["TAR"]["LISTFLAGS"]       = "l"
             toolset["EXTRACTOR"]["TAR"]["LISTSUFFIX"]      = "-y -ttar -so"
             toolset["EXTRACTOR"]["TAR"]["EXTRACTFLAGS"]    = "x"
-            toolset["EXTRACTOR"]["TAR"]["EXTRACTSUFFIX"]   = "-y -ttar -oc:."
+            toolset["EXTRACTOR"]["TAR"]["EXTRACTSUFFIX"]   = "-y -ttar -oc:${UNPACK['EXTRACTDIR']}"
             
         # here can add some other Windows tools, that can handle the archive files
         # but I don't know which ones can handle all file types
@@ -220,29 +226,32 @@ def __detect( env ) :
         
     # read the tools on *nix systems and sets the default parameters
     elif env["PLATFORM"] in ["darwin", "linux", "posix"] :
-
+        
         if env.WhereIs("unzip") :
             toolset["EXTRACTOR"]["ZIP"]["RUN"]             = "unzip"
-            toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_unzip
-            toolset["EXTRACTOR"]["TAR"]["LISTFLAGS"]       = "-l"
+            toolset["EXTRACTOR"]["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_nix_unzip
+            toolset["EXTRACTOR"]["ZIP"]["LISTFLAGS"]       = "-l"
             toolset["EXTRACTOR"]["ZIP"]["EXTRACTFLAGS"]    = "-oqq"
-
+        
         if env.WhereIs("tar") :
             toolset["EXTRACTOR"]["TAR"]["RUN"]             = "tar"
             toolset["EXTRACTOR"]["TAR"]["LISTEXTRACTOR"]   = __fileextractor_nix_tar
             toolset["EXTRACTOR"]["TAR"]["LISTFLAGS"]       = "tvf"
             toolset["EXTRACTOR"]["TAR"]["EXTRACTFLAGS"]    = "xf"
+            toolset["EXTRACTOR"]["TAR"]["EXTRACTSUFFIX"]   = "-C ${UNPACK['EXTRACTDIR']}"
 
             toolset["EXTRACTOR"]["TARGZ"]["RUN"]           = "tar"
             toolset["EXTRACTOR"]["TARGZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
             toolset["EXTRACTOR"]["TARGZ"]["EXTRACTFLAGS"]  = "xfz"
             toolset["EXTRACTOR"]["TARGZ"]["LISTFLAGS"]     = "tvfz"
+            toolset["EXTRACTOR"]["TARGZ"]["EXTRACTSUFFIX"] = "-C ${UNPACK['EXTRACTDIR']}"
 
             toolset["EXTRACTOR"]["TARBZ"]["RUN"]           = "tar"
             toolset["EXTRACTOR"]["TARBZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
             toolset["EXTRACTOR"]["TARBZ"]["EXTRACTFLAGS"]  = "xfj"
             toolset["EXTRACTOR"]["TARBZ"]["LISTFLAGS"]     = "tvfj"
-            
+            toolset["EXTRACTOR"]["TARBZ"]["EXTRACTSUFFIX"] = "-C ${UNPACK['EXTRACTDIR']}"
+        
         if env.WhereIs("bzip2") :
             toolset["EXTRACTOR"]["BZIP"]["RUN"]            = "bzip2"
             toolset["EXTRACTOR"]["BZIP"]["EXTRACTFLAGS"]   = "-df"
@@ -252,7 +261,7 @@ def __detect( env ) :
             toolset["EXTRACTOR"]["GZIP"]["LISTEXTRACTOR"]  = __fileextractor_nix_gzip
             toolset["EXTRACTOR"]["GZIP"]["LISTFLAGS"]      = "-l"
             toolset["EXTRACTOR"]["GZIP"]["EXTRACTFLAGS"]   = "-df"
-
+        
     else :
         raise SCons.Errors.StopError("Unpack tool detection on this platform [%s] unkown" % (env["PLATFORM"]))
     
@@ -272,8 +281,8 @@ def __getExtractor( source, env ) :
         if not SCons.Util.is_String(extractor["RUN"]) :
             raise SCons.Errors.StopError("list command of the unpack builder for [%s] archives is not a string" % (unpackername))
         if not len(extractor["RUN"]) :
-            continue
-
+            raise SCons.Errors.StopError("run command of the unpack builder for [%s] archives is not set - can not extract files" % (unpackername))
+ 
         
         if not SCons.Util.is_String(extractor["LISTFLAGS"]) :
             raise SCons.Errors.StopError("list flags of the unpack builder for [%s] archives is not a string" % (unpackername))
@@ -314,6 +323,7 @@ def __action( target, source, env ) :
     extractor = __getExtractor(source, env)
     if not extractor :
         raise SCons.Errors.StopError( "can not find any extractor value for the source file [%s]" % (source[0]) )
+    
     
     # if the extract command is empty, we create an error
     if len(extractor["EXTRACTCMD"]) == 0 :
@@ -362,16 +372,20 @@ def __emitter( target, source, env ) :
     # a string we push it back to the target list
     try :
         if callable(extractor["LISTEXTRACTOR"]) :
-            target = filter( lambda s : SCons.Util.is_String(s), [ extractor["LISTEXTRACTOR"]( len(target), no, i) for no, i in enumerate(target) ] )
+            target = filter( lambda s : SCons.Util.is_String(s), [ extractor["LISTEXTRACTOR"]( env, len(target), no, i) for no, i in enumerate(target) ] )
     except Exception, e :
         raise SCons.Errors.StopError( "%s" % (e) )
     
     # the line removes duplicated names - we need this line, otherwise an cyclic dependency error will occured,
     # because the list process can create redundant data (an archive file can not store redundant content in a filepath)
-    target = list(set(target))
+    target = [i.strip() for i in list(set(target))]
     if not target :
         SCons.Warnings.warn(SCons.Warnings.Warning, "emitter file list on target [%s] is empty, please check your extractor list function [%s]" % (source[0], cmd) ) 
     
+    # we append the extractdir to each target if is not absolut
+    if env["UNPACK"]["EXTRACTDIR"] <> "." :
+        target = [i if os.path.isabs(i) else os.path.join(env["UNPACK"]["EXTRACTDIR"], i) for i in target]
+
     return target, source
 
 
@@ -381,7 +395,7 @@ def __emitter( target, source, env ) :
 # @env environment object
 def generate( env ) :
     __detect(env)
-
+    
     # the target_factory must be a "Entry", because the target list can be files and dirs, so we can not specified the targetfactory explicite 
     env["BUILDERS"]["Unpack"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.Entry,  source_factory = SCons.Node.FS.File,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
 
@@ -391,3 +405,4 @@ def generate( env ) :
 # @return true
 def exists(env) :
     return 1
+    
