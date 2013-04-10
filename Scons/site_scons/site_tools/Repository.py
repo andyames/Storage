@@ -12,52 +12,6 @@ import SCons.Util
 
 
 
-# detecting tool function and setting default parameter,
-# we use always abspath, because the reporitory can not work
-# without an relative path
-# @param env environment object
-def __detect( env ) :   
-    env["REPOSITORY"] = {
-    
-        # we need some syntax data for calling the SVN client
-        # RUN       => path to the command-line svn client
-        # CHECKOUT  => checkout command
-        # UPDATE    => update command
-        # COMMIT    => command for commit
-        # LSLOCAL   => command for the emitter, for getting the file list
-        "SVN" : {
-            
-            "RUN"       : "svn",
-            "CHECKOUT"  : "${REPOSITORY['SVN']['RUN']} checkout $SOURCE ${TARGET.abspath}",
-            "UPDATE"    : "${REPOSITORY['SVN']['RUN']} update ${SOURCE.abspath}",
-            "COMMIT"    : "${REPOSITORY['SVN']['RUN']} add ${SOURCE.abspath}"+os.path.sep+"* --force && ${REPOSITORY['SVN']['RUN']} commit ${SOURCE.abspath} -m $TARGET",
-            "LSLOCAL"   : "${REPOSITORY['SVN']['RUN']} list -R ${SOURCE.abspath}"
-        },
-        
-        # we need the working & git dir, but for correct path seperation we store a path seperator and the Git-dir in a variable
-        # DIR       => stores relativ to the work-tree the .git directory
-        # RUN       => path to the command-line git client
-        # PARAMETER => parameter, that is added on each git call
-        # PULL      => command for pull request
-        # PUSH      => command for push request
-        # CLONE     => command for cloning
-        # COMMIT    => command for commit
-        # LSLOCAL   => command for the emitter, for getting the file list
-        "GIT" : {
-            "DIR"       : os.path.sep + ".git",
-            "RUN"       : "git",
-            "PARAMETER" : "--git-dir=${SOURCE.abspath}${REPOSITORY['GIT']['DIR']} --work-tree=${SOURCE.abspath}",
-            "PULL"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} pull",
-            "PUSH"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} push",
-            "CLONE"     : "${REPOSITORY['GIT']['RUN']} clone $SOURCE ${TARGET.abspath}",
-            "COMMIT"    : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} add . && ${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} commit -m $TARGET",
-            "LSLOCAL"   : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} ls-files"
-        }
-    
-    }
-
-
-
 # creates the output message for Git Clone
 # @param s original message
 # @param target target name
@@ -161,7 +115,45 @@ def __SVNCheckoutEmitter( target, source, env ) :
 # generate function, that adds the builder to the environment
 # @env environment object
 def generate( env ) :
-    __detect(env)
+    # setup environment variables
+    env["REPOSITORY"] = {
+    
+        # we need some syntax data for calling the SVN client
+        # RUN       => path to the command-line svn client
+        # CHECKOUT  => checkout command
+        # UPDATE    => update command
+        # COMMIT    => command for commit
+        # LSLOCAL   => command for the emitter, for getting the file list
+        "SVN" : {
+            
+            "RUN"       : "svn",
+            "CHECKOUT"  : "${REPOSITORY['SVN']['RUN']} checkout $SOURCE ${TARGET.abspath}",
+            "UPDATE"    : "${REPOSITORY['SVN']['RUN']} update ${SOURCE.abspath}",
+            "COMMIT"    : "${REPOSITORY['SVN']['RUN']} add ${SOURCE.abspath}"+os.path.sep+"* --force && ${REPOSITORY['SVN']['RUN']} commit ${SOURCE.abspath} -m $TARGET",
+            "LSLOCAL"   : "${REPOSITORY['SVN']['RUN']} list -R ${SOURCE.abspath}"
+        },
+        
+        # we need the working & git dir, but for correct path seperation we store a path seperator and the Git-dir in a variable
+        # DIR       => stores relativ to the work-tree the .git directory
+        # RUN       => path to the command-line git client
+        # PARAMETER => parameter, that is added on each git call
+        # PULL      => command for pull request
+        # PUSH      => command for push request
+        # CLONE     => command for cloning
+        # COMMIT    => command for commit
+        # LSLOCAL   => command for the emitter, for getting the file list
+        "GIT" : {
+            "DIR"       : os.path.sep + ".git",
+            "RUN"       : "git",
+            "PARAMETER" : "--git-dir=${SOURCE.abspath}${REPOSITORY['GIT']['DIR']} --work-tree=${SOURCE.abspath}",
+            "PULL"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} pull",
+            "PUSH"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} push",
+            "CLONE"     : "${REPOSITORY['GIT']['RUN']} clone $SOURCE ${TARGET.abspath}",
+            "COMMIT"    : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} add . && ${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} commit -m $TARGET",
+            "LSLOCAL"   : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} ls-files"
+        }
+    
+    }
 
     # add for each "general" command an own builder
     env["BUILDERS"]["GitClone"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['GIT']['CLONE']}"),  emitter = __GitCloneEmitter,  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __GitCloneMessage )
