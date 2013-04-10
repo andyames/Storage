@@ -65,22 +65,96 @@ def Boost_DownloadURL() :
     return "http://downloads.sourceforge.net/project/boost/boost/"+found.group(1)+".tar.bz2"     
 
 
+def LUA_BuildInstall(env, version, extract) :
+
+    
+    
+    prefix    = os.path.join("lua", version)
+
+    envlua    = Environment()
+    envlua.AppendUnique(CPPDEFINES  = ["LUA_COMPAT_ALL", "NDEBUG"])
+    envlua.AppendUnique(CDEFINES    = ["LUA_USE_MACOSX"])
+    envlua.AppendUnique(LINKFLAGS   = ["-Wl,-install_name,liblua.dylib"])
+    envlua.AppendUnique(CFLAGS      = ["-O2"])
+    
+    # install header and libraries
+    lib             = envlua.SharedLibrary(target="lua", source=extract)
+
+
+
+    
+    """
+    clist = [
+        "lapi.c", "lcode.c", "lctype.c", "ldebug.c", "ldo.c", "ldump.c", "lfunc.c", "lgc.c", "llex.c", "lmem.c", "lobject.c", "lopcodes.c", "lparser.c",
+        "lstate.c", "lstring.c", "ltable.c", "ltm.c", "lundump.c", "lvm.c", "lzio.c", "lauxlib.c", "lbaselib.c", "lbitlib.c", "lcorolib.c", "ldblib.c",
+        "liolib.c", "lmathlib.c", "loslib.c", "lstrlib.c", "ltablib.c", "loadlib.c", "linit.c"
+    ]
+    
+    headerlist = [
+        "lauxlib.h", "lua.h", "luaconf.h", "lualib.h", "lua.hpp"
+    ]
+
+    # extract version and build regex for getting files
+    
+    prefix    = os.path.join("lua", version)
+    regc      = re.compile("(.*)\.c")
+    regheader = re.compile("(.*)\.h(.*)")
+
+    
+    
+    # extract the needed source from the list
+    libsrc      = []
+    libheader   = []
+    for i in extract :
+        name = os.path.basename( str(i) )
+        c  = regc.match( name ) 
+        if (c <> None) and (name in clist) :
+            libsrc.append( i )
+        header = regheader.match( name )
+        if (header <> None) and (name in headerlist) :
+            libheader.append( i ) 
+    
+    lib          = None
+    envlua       = Environment()
+    
+    envlua.AppendUnique(CPPDEFINES  = ["LUA_COMPAT_ALL", "NDEBUG"])
+    envlua.AppendUnique(CDEFINES  = ["LUA_USE_MACOSX"])
+    envlua.AppendUnique(LINKFLAGS = ["-Wl,-install_name,liblua.dylib"])
+    envlua.AppendUnique(CFLAGS    = ["-O2"])
+    
+    # install header and libraries
+    lib             = envlua.SharedLibrary(target="lua", source=libsrc)
+    libinstall      = env.Install( os.path.join(prefix, "lib"), lib )
+    headerdir       = env.Command( os.path.join(prefix, "include"), "", Mkdir("$TARGET"))
+    headerinstall   = []
+    for i in libheader :
+        headerinstall.append( env.Command( os.path.join(str(headerdir).replace("']", "").replace("['", ""), os.path.basename(str(i))), i, Copy("$TARGET", "$SOURCE")) )
+    
+    # prevent libs and headers during clean
+    env.NoClean(libinstall)
+    env.NoClean(headerinstall)
+    
+    return libinstall + headerinstall
+    """
+
+
 
 
 
 # test Scons script with my builders + create environment
-env = Environment( tools = ["default", "URLDownload", "Unpack", "Repository"], ENV = os.environ )
+env = Environment( tools = ["default", "URLDownload", "Repository", "Unpack"], ENV = os.environ )
 
 
 # uses URLDownload-Builder and run Unpack-Builder after download (we test it with some examples)
-#env.Unpack("lapack-extract-tgz",  env.URLDownload( "lapack-download", LaPack_DownloadURL() ) )
+#env.Unpack("lapack-extract-tgz",  env.URLDownload( "lapack-download", LaPack_DownloadURL() ) ) 
+
 #env.Unpack("lua-extract-zip",  env.URLDownload( "lua-download-zip", "http://downloads.sourceforge.net/project/luabinaries/5.2.1/Docs%20and%20Sources/lua-5.2.1_Sources.zip?r=http%3A%2F%2Fluabinaries.sourceforge.net%2Fdownload.html&ts=1365282098&use_mirror=netcologne" ) )
 #env.Unpack("lua-extract-gz",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
 #env.Unpack("boost-extract-bz2",  env.URLDownload( "boost-download", Boost_DownloadURL() ) )
 
 
 # uses Repository-Builder for management Git repositories
-env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
+#env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
 #env.GitPull("xxx", "gittest")
 #env.GitCommit("first test commit 1234", "gittest")
 
@@ -89,3 +163,18 @@ env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
 #env.SVNCheckout("svntest", "svn://vmgentoo/scons")
 #print env.SVNUpdate("xxxx", "svntest")
 #env.SVNCommit("letzte Änderung", "svntest")
+
+
+# we download LUA source package, extract it and compiled it for OSX on-fly
+"""
+dw         = env.URLDownload( "lua-download", LUA_DownloadURL() )
+extractdir = str(dw).replace("'", "").replace("[", "").replace("]", "").replace(".tar.gz", "")
+extract    = env.Unpack("lua-extract",  dw, UNPACKLIST=[os.path.join(extractdir, "src", i) for i in [ "lapi.c", "lcode.c", "lctype.c", "ldebug.c", "ldo.c", "ldump.c", "lfunc.c", "lgc.c", "llex.c", "lmem.c", "lobject.c", "lopcodes.c", "lparser.c", "lstate.c", "lstring.c", "ltable.c", "ltm.c", "lundump.c", "lvm.c", "lzio.c", "lauxlib.c", "lbaselib.c", "lbitlib.c", "lcorolib.c", "ldblib.c", "liolib.c", "lmathlib.c", "loslib.c", "lstrlib.c", "ltablib.c", "loadlib.c", "linit.c"]])
+
+env.AppendUnique(CPPDEFINES  = ["LUA_COMPAT_ALL", "NDEBUG"])
+env.AppendUnique(CDEFINES    = ["LUA_USE_MACOSX"])
+env.AppendUnique(LINKFLAGS   = ["-Wl,-install_name,liblua.dylib"])
+env.AppendUnique(CFLAGS      = ["-O2"])
+    
+env.SharedLibrary(target="lua", source=extract)
+"""

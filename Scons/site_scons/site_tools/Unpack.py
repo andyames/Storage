@@ -39,7 +39,10 @@ import SCons.Util
 
 
 # enables Scons warning for this builder
-SCons.Warnings.enableWarningClass(SCons.Warnings.Warning)
+class UnpackWarning(SCons.Warnings.Warning) :
+    pass
+    
+SCons.Warnings.enableWarningClass(UnpackWarning)
 
 
 # extractor function for Tar output
@@ -355,14 +358,22 @@ def __emitter( target, source, env ) :
     if not extractor :
         raise SCons.Errors.StopError( "can not find any extractor value for the source file [%s]" % (source[0]) )
 
-    # we do a little trick, because eg the download builder creates an empty file, so we
-    # return direct the target file / we return it also, if the does not exists a LISTCMD
-    if len(extractor["LISTCMD"]) == 0 :
-        return target, source
-    elif source[0].get_size() == 0 and env["UNPACK"]["STOPONEMPTYFILE"] :
-        raise SCons.Errors.StopError( "source file is empty [%s]" % (source[0]) )
-    elif source[0].get_size() == 0 and not env["UNPACK"]["STOPONEMPTYFILE"] :
-        return target, source
+    # we do a little trick, because in some cases we do not have got a physical
+    # file (eg we download a packed archive), so we don't get a list or knows
+    # the targets. On physical files we can do this with the LISTCMD, but on
+    # non-physical files we hope the user knows the target files, so we inject
+    # this knowledge into the return target.
+    if env.has_key("UNPACKLIST") :
+        if not SCons.Util.is_List(env["UNPACKLIST"]) and not SCons.Util.is_String(env["UNPACKLIST"]) :
+            raise SCons.Errors.StopError( "manual target list of [%s] must be a string or list" % (source[0]) )
+        if not env["UNPACKLIST"] :
+            raise SCons.Errors.StopError( "manual target list of [%s] need not be empty" % (source[0]) )
+        return env["UNPACKLIST"], source
+    
+        
+    # we check if the source file exists, because we would like to read the data
+    if not source[0].exists() :
+        raise SCons.Errors.StopError( "source file [%s] must be exist" % (source[0]) )
            
     # create the list command and run it in a subprocess and pipes the output to a variable,
     # we need the shell for reading data from the stdout
@@ -386,7 +397,7 @@ def __emitter( target, source, env ) :
     # because the list process can create redundant data (an archive file can not store redundant content in a filepath)
     target = [i.strip() for i in list(set(target))]
     if not target :
-        SCons.Warnings.warn(SCons.Warnings.Warning, "emitter file list on target [%s] is empty, please check your extractor list function [%s]" % (source[0], cmd) ) 
+        SCons.Warnings.warn(UnpackWarning, "emitter file list on target [%s] is empty, please check your extractor list function [%s]" % (source[0], cmd) ) 
     
     # we append the extractdir to each target if is not absolut
     if env["UNPACK"]["EXTRACTDIR"] <> "." :
@@ -411,3 +422,4 @@ def generate( env ) :
 # @return true
 def exists(env) :
     return 1
+    
