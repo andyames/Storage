@@ -33,9 +33,8 @@
 
 
 import subprocess, os
+import SCons.Errors, SCons.Warnings, SCons.Util
 
-import SCons.Errors, SCons.Warnings
-import SCons.Util
 
 
 # enables Scons warning for this builder

@@ -4,11 +4,9 @@
 # The builder need the external command line tools for SVN & Git access,
 # so they must be installed in the system and accessiable by Scons
 
+
 import subprocess, os
-
-import SCons.Errors
-import SCons.Util
-
+import SCons.Errors, SCons.Util
 
 
 

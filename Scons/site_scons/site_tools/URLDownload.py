@@ -6,12 +6,8 @@
 # default setting replaces the target name with the URL filename)
 
 
-import urllib2
-import urlparse
-
-import SCons.Builder
-import SCons.Node
-import SCons.Errors
+import urllib2, urlparse
+import SCons.Builder, SCons.Node, SCons.Errors
 
 
 
