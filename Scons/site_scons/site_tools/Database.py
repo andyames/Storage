@@ -3,7 +3,10 @@
 # the Database builder can create and/or update any
 # database which is supported by Pythons Database API
 # http://wiki.python.org/moin/DatabaseProgramming/
-# The database is describe in a XML document
+#
+# Base an a source dictionary the database process
+# is updated / created
+# @see http://www.sqlobject.org
 
 import SCons.Builder, SCons.Node, SCons.Errors
 
@@ -47,8 +50,8 @@ def __updateBuilder( target, source, env ) :
 # generate function, that adds the builder to the environment
 # @env environment object
 def generate( env ) :
-    env["BUILDERS"]["DatabaseCreate"] = SCons.Builder.Builder( action = __createBuilder,  source_factory = SCons.Node.FS.File,  target_factory = SCons.Node.Python.Value,   single_source = True,  PRINT_CMD_LINE_FUNC = __createMessage )
-    env["BUILDERS"]["DatabaseUpdate"] = SCons.Builder.Builder( action = __updateBuilder,  source_factory = SCons.Node.FS.File,  target_factory = SCons.Node.Python.Value,   single_source = True,  PRINT_CMD_LINE_FUNC = __updateMessage )
+    env["BUILDERS"]["DatabaseCreate"] = SCons.Builder.Builder( action = __createBuilder,  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.Python.Value,   single_source = True,  PRINT_CMD_LINE_FUNC = __createMessage )
+    env["BUILDERS"]["DatabaseUpdate"] = SCons.Builder.Builder( action = __updateBuilder,  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.Python.Value,   single_source = True,  PRINT_CMD_LINE_FUNC = __updateMessage )
     
 # existing function of the builder
 # @param env environment object
