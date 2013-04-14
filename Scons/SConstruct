@@ -6,7 +6,7 @@ import urllib2, re, os, sqlalchemy
 import SCons.Errors
 
 
-# === heler functions ==============================================================================================
+# === helper functions =============================================================================================
 # ==================================================================================================================
 # test URL Downloadbuilder with LAPack, we use a normal
 # Python function for getting the latest download URL
