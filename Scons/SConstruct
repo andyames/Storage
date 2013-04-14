@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# === Test Script for the Builder ===============
+# === Test Script for the Builder ==================================================================================
 
 import urllib2, re, os, sqlalchemy
 import SCons.Errors
 
 
+# === heler functions ==============================================================================================
+# ==================================================================================================================
 # test URL Downloadbuilder with LAPack, we use a normal
 # Python function for getting the latest download URL
 def LaPack_DownloadURL() :
@@ -63,17 +65,23 @@ def Boost_DownloadURL() :
 
     # create download URL
     return "http://downloads.sourceforge.net/project/boost/boost/"+found.group(1)+".tar.bz2"     
+# ==================================================================================================================
+# ==================================================================================================================
 
 
 
 
 
+# === test calls ===================================================================================================
 # test Scons script with my builders + create environment
 env = Environment( tools = ["default", "URLDownload", "Repository", "Unpack", "Database"], ENV = os.environ )
 
 
-# test the database builder
-table = {
+# === Database builder =============================================================================================
+# The database builder can create and update database structures which are supported by http://www.sqlalchemy.org/ .
+# The database will be describe like a Python dictionary with the parameters and pushed to the builder
+
+database = {
     "mytable" : {
         "field1" : sqlalchemy.String(120),
         "field2" : sqlalchemy.String(180)
@@ -89,34 +97,22 @@ table = {
     }
 }
 
-env.Replace( DATABASE_VERBOSE = True )
-x = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=table )
-Default( x )
-AlwaysBuild( x )
+db = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=database, DATABASE_VERBOSE = True )
+Default( db )
+AlwaysBuild( db )
+# ==================================================================================================================
 
 
 
 
+# === Download & Unpack Builder ====================================================================================
+# The Download & Unpack builder is used for downloading source packages eg DLL's and compiles them on-fly. The builder
+# can be used for solving dependencies on a program. The Unpack builder call the system-wide extraction tools for
+# unpacking the archive data (optional the list of files which are needed by the next target can be inject by the builder)
 
-# uses URLDownload-Builder and run Unpack-Builder after download (we test it with some examples)
 #env.Unpack("lapack-extract-tgz",  env.URLDownload( "lapack-download", LaPack_DownloadURL() ) ) 
-
-#env.Unpack("lua-extract-zip",  env.URLDownload( "lua-download-zip", "http://downloads.sourceforge.net/project/luabinaries/5.2.1/Docs%20and%20Sources/lua-5.2.1_Sources.zip?r=http%3A%2F%2Fluabinaries.sourceforge.net%2Fdownload.html&ts=1365282098&use_mirror=netcologne" ) )
 #env.Unpack("lua-extract-gz",  env.URLDownload( "lua-download", LUA_DownloadURL() ) )
 #env.Unpack("boost-extract-bz2",  env.URLDownload( "boost-download", Boost_DownloadURL() ) )
-
-
-# uses Repository-Builder for management Git repositories
-#env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
-#env.GitPull("xxx", "gittest")
-#env.GitCommit("first test commit 1234", "gittest")
-
-
-# uses Repository-Builder for management SVN repositories
-#env.SVNCheckout("svntest", "svn://vmgentoo/scons")
-#print env.SVNUpdate("xxxx", "svntest")
-#env.SVNCommit("letzte Änderung", "svntest")
-
 
 # we download LUA source package, extract it and compiled it for OSX on-fly
 """
@@ -131,3 +127,24 @@ env.AppendUnique(CFLAGS      = ["-O2"])
     
 env.SharedLibrary(target="lua", source=extract)
 """
+# ==================================================================================================================
+
+
+
+
+# === Repository Builder ===========================================================================================
+# The Repository (SVN & Git) builder are an extension of the Download builder, for getting repositories on-fly 
+# ti build also library dependencies. Upload & Commit calls are also added, but no deeper functionality exists
+# on this builder. Both builder are not intended for maintaining the repository of the project
+
+# uses Repository-Builder for management Git repositories
+#env.GitClone("gittest", "https://github.com/flashpixx/Storage.git")
+#env.GitPull("xxx", "gittest")
+#env.GitCommit("first test commit 1234", "gittest")
+
+
+# uses Repository-Builder for management SVN repositories
+#env.SVNCheckout("svntest", "svn://vmgentoo/scons")
+#print env.SVNUpdate("xxxx", "svntest")
+#env.SVNCommit("letzte Änderung", "svntest")
+# ==================================================================================================================

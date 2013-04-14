@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # the Database builder can create and/or update any
-# database which is supported by Pythons Database API
-# http://wiki.python.org/moin/DatabaseProgramming/
-#
-# Base an a source dictionary the database process
-# is updated / created
-# @see http://en.wikipedia.org/wiki/SQLObject
-# @see http://www.sqlobject.org
+# database which is supported by http://www.sqlalchemy.org/ .
+# The builder is a wrapper around the SQLAlchemy interface,
+# so SQLAlchemy and the database driver must be also installed,
+# they are not part of the builder
 
 import sqlalchemy
 import SCons.Builder, SCons.Node, SCons.Errors
