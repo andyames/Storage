@@ -2,7 +2,7 @@
 
 # === Test Script for the Builder ===============
 
-import urllib2, re, os
+import urllib2, re, os, sqlalchemy
 import SCons.Errors
 
 
@@ -69,7 +69,33 @@ def Boost_DownloadURL() :
 
 
 # test Scons script with my builders + create environment
-env = Environment( tools = ["default", "URLDownload", "Repository", "Unpack"], ENV = os.environ )
+env = Environment( tools = ["default", "URLDownload", "Repository", "Unpack", "Database"], ENV = os.environ )
+
+
+# test the database builder
+table = {
+    "mytable" : {
+        "field1" : sqlalchemy.String(120),
+        "field2" : sqlalchemy.String(180)
+    },
+    
+    "mytable2" : {
+        "fieldA" : sqlalchemy.String(20),
+        "fieldB" : sqlalchemy.String(40),
+        "pk"     : {
+            "type"        : sqlalchemy.Integer,
+            "primary_key" : True
+        }
+    }
+}
+
+env.Replace( DATABASE_VERBOSE = True )
+x = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=table )
+Default( x )
+AlwaysBuild( x )
+
+
+
 
 
 # uses URLDownload-Builder and run Unpack-Builder after download (we test it with some examples)
