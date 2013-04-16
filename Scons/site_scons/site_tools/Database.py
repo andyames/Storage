@@ -45,21 +45,26 @@ def __createEmitter( target, source, env ) :
 # @param source URL for download
 # @env environment object
 def __createBuilder( target, source, env ) :
-    # create the database connection
+    # create the database connection and set the transaction
     try :
-    
-        db = sqlalchemy.create_engine(env["connection"], echo = env.get("DATABASE_VERBOSE", False) )
+        engine   = sqlalchemy.create_engine(env["connection"], echo = env.get("DATABASE_VERBOSE", False) )   
         metadata = sqlalchemy.MetaData()
+
+
+        for tablename, tabledata in env["layout"].iteritems() :
         
-        for tablename, fields in env["layout"].iteritems() :
-            sqlalchemy.Table( tablename, metadata, *[
-                sqlalchemy.Column(fieldname, fieldvalue["type"], **dict((k,v) for k,v in fieldvalue.iteritems() if k <> "type")) if type(fieldvalue) == type({}) else sqlalchemy.Column(fieldname, fieldvalue) for fieldname, fieldvalue in fields.iteritems()
-            ])
+            # get all columns and add them to table
+            columns = []
+            for columnname, columndata in (dict((contentname, contentdata) for contentname, contentdata in tabledata.iteritems() if contentdata.get("kind") == "column")).iteritems() :
+                columns.append( sqlalchemy.Column( columnname, columndata["type"], **dict((key, value) for key, value in columndata.iteritems() if not key in ["kind", "type"] ) ) )
+            if columns :
+                sqlalchemy.Table( tablename, metadata, *columns )
+
        
-        metadata.create_all( db, checkfirst=env.get("DATABASE_CHECKFIRST", True) )
+        metadata.create_all( engine, checkfirst=env.get("DATABASE_CHECKFIRST", True) )
     except Exception, e :
         raise SCons.Errors.StopError( e )
-        
+    
 
     
 # defines the builder of the builder for database updating

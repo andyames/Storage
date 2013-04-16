@@ -82,19 +82,46 @@ env = Environment( tools = ["default", "URLDownload", "Repository", "Unpack", "D
 # The database will be describe like a Python dictionary with the parameters and pushed to the builder
 
 database = {
+
+
     "mytable" : {
-        "field1" : sqlalchemy.String(120),
-        "field2" : sqlalchemy.String(180)
+        
+        "field1" : {
+            "kind" : "column",
+            "type" : sqlalchemy.String(120)
+        },
+        
+        "field2" : {
+            "kind" : "column",
+            "type" : sqlalchemy.String(180)
+        },
+        
+        "field3" : {
+            "kind" : "index"
+        }
     },
     
+    
     "mytable2" : {
-        "fieldA" : sqlalchemy.String(20),
-        "fieldB" : sqlalchemy.String(40),
+    
+        "fieldA" : {
+            "kind" : "column",
+            "type" : sqlalchemy.String(20)
+        },
+    
+        "fieldB" : {
+            "kind" : "column",
+            "type" : sqlalchemy.String(40)
+        },
+        
         "pk"     : {
+            "kind"        : "column",
             "type"        : sqlalchemy.Integer,
             "primary_key" : True
         }
     }
+    
+    
 }
 
 db = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=database, DATABASE_VERBOSE = True )
