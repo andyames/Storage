@@ -114,11 +114,22 @@ database = {
             "type" : sqlalchemy.String(40)
         },
         
+        "fieldC" : {
+            "kind" : "column",
+            "type" : sqlalchemy.String(60)
+        },
+        
         "pk"     : {
             "kind"        : "column",
             "type"        : sqlalchemy.Integer,
             "primary_key" : True
-        }
+        },
+        
+        "insert" : [
+            {"fieldB" : "blub", "fieldA" : "1234"},
+            {"fieldB" : "new blub", "fieldA" : "987"},
+            {"fieldC" : "xxx", "fieldB" : "new blub", "fieldA" : "987"}
+        ]
     }
     
     

@@ -49,19 +49,29 @@ def __createBuilder( target, source, env ) :
     try :
         engine   = sqlalchemy.create_engine(env["connection"], echo = env.get("DATABASE_VERBOSE", False) )   
         metadata = sqlalchemy.MetaData()
-
+        connect  = engine.connect()
+        
 
         for tablename, tabledata in env["layout"].iteritems() :
-        
-            # get all columns and add them to table
-            columns = []
-            for columnname, columndata in (dict((contentname, contentdata) for contentname, contentdata in tabledata.iteritems() if contentdata.get("kind") == "column")).iteritems() :
-                columns.append( sqlalchemy.Column( columnname, columndata["type"], **dict((key, value) for key, value in columndata.iteritems() if not key in ["kind", "type"] ) ) )
-            if columns :
-                sqlalchemy.Table( tablename, metadata, *columns )
 
-       
-        metadata.create_all( engine, checkfirst=env.get("DATABASE_CHECKFIRST", True) )
+            tablestructure = []
+            
+            # get all columns and add them to table
+            for columnname, columndata in (dict((contentname, contentdata) for contentname, contentdata in tabledata.iteritems() if type(contentdata) == type({}) and contentdata.get("kind") == "column")).iteritems() :
+                tablestructure.append( sqlalchemy.Column( columnname, columndata["type"], **dict((key, value) for key, value in columndata.iteritems() if not key in ["kind", "type"] ) ) )
+
+            # create table structure
+            if tablestructure :
+                sqlalchemy.Table( tablename, metadata, *tablestructure )
+                metadata.create_all( engine, checkfirst=env.get("DATABASE_CHECKFIRST", True) )
+                
+                
+            # create inserts to the table if the insert field is a list
+            if "insert" in tabledata and type(tabledata["insert"]) == type([]) and tabledata["insert"] :
+                for i in tabledata["insert"] :
+                    connect.execute( sqlalchemy.Table( tablename, metadata ).insert(), **i )
+
+        
     except Exception, e :
         raise SCons.Errors.StopError( e )
     
