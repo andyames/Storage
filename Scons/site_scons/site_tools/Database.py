@@ -33,8 +33,11 @@ def __createEmitter( target, source, env ) :
     if not "connection" in env or type(env["connection"]) <> type("") or len(env["connection"]) == 0:
         raise SCons.Errors.StopError( "connection definition must be a non-empty string" )
 
-    if not "layout" in env or  type(env["layout"]) <> type({}) or len(env["layout"].keys()) == 0:
+    if not "layout" in env or type(env["layout"]) <> type({}) or len(env["layout"].keys()) == 0:
         raise SCons.Errors.StopError( "layout definition must be a non-empty dictionary" )
+        
+    if "order" in env and type(env["order"]) <> type([]) :
+        raise SCons.Errors.StopError( "order option must be a list" )
         
     return target, source
     
@@ -45,36 +48,74 @@ def __createEmitter( target, source, env ) :
 # @param source URL for download
 # @env environment object
 def __createBuilder( target, source, env ) :
+
     # create the database connection and set the transaction
     try :
         engine   = sqlalchemy.create_engine(env["connection"], echo = env.get("DATABASE_VERBOSE", False) )   
         metadata = sqlalchemy.MetaData()
         connect  = engine.connect()
         
-
-        for tablename, tabledata in env["layout"].iteritems() :
-
-            tablestructure = []
-            
-            # get all columns and add them to table
-            for columnname, columndata in (dict((contentname, contentdata) for contentname, contentdata in tabledata.iteritems() if type(contentdata) == type({}) and contentdata.get("kind") == "column")).iteritems() :
-                tablestructure.append( sqlalchemy.Column( columnname, columndata["type"], **dict((key, value) for key, value in columndata.iteritems() if not key in ["kind", "type"] ) ) )
-
-            # create table structure
-            if tablestructure :
-                sqlalchemy.Table( tablename, metadata, *tablestructure )
-                metadata.create_all( engine, checkfirst=env.get("DATABASE_CHECKFIRST", True) )
+        # for Python 2.6 we need an orderd dict structure, so we check the "order" parameter
+        order = env.get("order", [])
+        if order :
+            for i in order :
+                if not i in env["layout"] :
+                    raise SCons.Errors.StopError( "order key [%s] not in the database definition" % (i) )
                 
+                __createTable( env, engine, metadata, connect, i, env["layout"][i] )
+        
+        # for an ordered structure we can iterate of the data
+        else :
+            for tablename, tabledata in env["layout"].iteritems() :
+                __createTable( env, engine, metadata, connect, tablename, tabledata )
                 
-            # create inserts to the table if the insert field is a list
-            if "insert" in tabledata and type(tabledata["insert"]) == type([]) and tabledata["insert"] :
-                for i in tabledata["insert"] :
-                    connect.execute( sqlalchemy.Table( tablename, metadata ).insert(), **i )
-
+        # run native code
+        
+        
         
     except Exception, e :
         raise SCons.Errors.StopError( e )
     
+    
+# function that creates all tables in the database
+# @param env environment object
+# @param engine engine object
+# @param metadata metadata object
+# @param connect connect object
+# @param tablename string with table name
+# @param tabledata dict with table data
+def __createTable( env, engine, metadata, connect, tablename, tabledata ) :
+    # get all columns and add them to table
+    tablestructure = []
+    for columnname, columndata in (dict((contentname, contentdata) for contentname, contentdata in tabledata.iteritems() if type(contentdata) == type({}) and contentdata.get("kind") == "column")).iteritems() :
+        
+        # get all parameters 
+        param = dict((key, value) for key, value in columndata.iteritems() if not key in ["kind", "type", "foreignkey"])
+
+        # get foreign keys
+        if "foreignkey" in columndata and type(columndata["foreignkey"]) == type("") :
+            tablestructure.append( sqlalchemy.Column( columnname, columndata["type"], sqlalchemy.ForeignKey(columndata["foreignkey"]), **param ) )
+        elif "foreignkey" in columndata and type(columndata["foreignkey"]) == type([]) :
+            tablestructure.append( sqlalchemy.Column( columnname, columndata["type"], *[sqlalchemy.ForeignKey(i) for i in columndata["foreignkey"]], **param ) )
+        else :
+            tablestructure.append( sqlalchemy.Column( columnname, columndata["type"], **param ) )
+
+
+    # create table structure (and drop optional all tables before)
+    if tablestructure :
+        sqlalchemy.Table( tablename, metadata, *tablestructure )
+        
+        if env.get("DATABASE_DROPALL", False) :
+            metadata.drop_all( engine )
+        metadata.create_all( engine, checkfirst=env.get("DATABASE_CHECKFIRST", True) )
+        
+        
+    # create inserts to the table if the insert field is a list
+    if "insert" in tabledata and type(tabledata["insert"]) == type([]) and tabledata["insert"] :
+        for i in tabledata["insert"] :
+            connect.execute( sqlalchemy.Table( tablename, metadata ).insert(), **i )
+
+                    
 
     
 # defines the builder of the builder for database updating

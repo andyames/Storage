@@ -85,24 +85,6 @@ database = {
 
 
     "mytable" : {
-        
-        "field1" : {
-            "kind" : "column",
-            "type" : sqlalchemy.String(120)
-        },
-        
-        "field2" : {
-            "kind" : "column",
-            "type" : sqlalchemy.String(180)
-        },
-        
-        "field3" : {
-            "kind" : "index"
-        }
-    },
-    
-    
-    "mytable2" : {
     
         "fieldA" : {
             "kind" : "column",
@@ -130,12 +112,37 @@ database = {
             {"fieldB" : "new blub", "fieldA" : "987"},
             {"fieldC" : "xxx", "fieldB" : "new blub", "fieldA" : "987"}
         ]
-    }
+        
+    },
     
+    
+    "mytable2" : {
+        
+        "field1" : {
+            "kind" : "column",
+            "type" : sqlalchemy.String(120)
+        },
+        
+        "field2" : {
+            "kind" : "column",
+            "type" : sqlalchemy.String(180)
+        },
+        
+        "field3" : {
+            "kind" : "index"
+        },
+        
+        "pk"     : {
+            "kind"        : "column",
+            "type"        : sqlalchemy.Integer,
+            "foreignkey"  : "mytable.pk"
+        }
+        
+    }
     
 }
 
-db = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=database, DATABASE_VERBOSE = True )
+db = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=database, order=["mytable", "mytable2"], DATABASE_VERBOSE = True, DATABASE_DROPALL = True )
 Default( db )
 AlwaysBuild( db )
 # ==================================================================================================================
