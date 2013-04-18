@@ -142,7 +142,7 @@ database = {
     
 }
 
-db = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=database, order=["mytable", "mytable2"], DATABASE_VERBOSE = True, DATABASE_DROPALL = True )
+db = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=database, order=["mytable", "mytable2"], native=["CREATE TABLE mytable3 (field2 varchar(180) DEFAULT NULL, pk int(11) DEFAULT NULL, field1 varchar(120) DEFAULT NULL)"], DATABASE_VERBOSE = True )
 Default( db )
 AlwaysBuild( db )
 # ==================================================================================================================

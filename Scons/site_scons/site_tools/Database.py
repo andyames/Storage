@@ -33,11 +33,14 @@ def __createEmitter( target, source, env ) :
     if not "connection" in env or type(env["connection"]) <> type("") or len(env["connection"]) == 0:
         raise SCons.Errors.StopError( "connection definition must be a non-empty string" )
 
-    if not "layout" in env or type(env["layout"]) <> type({}) or len(env["layout"].keys()) == 0:
-        raise SCons.Errors.StopError( "layout definition must be a non-empty dictionary" )
-        
     if "order" in env and type(env["order"]) <> type([]) :
         raise SCons.Errors.StopError( "order option must be a list" )
+
+    if "layout" in env and type(env["layout"]) <> type({}) :
+        raise SCons.Errors.StopError( "layout definition must be a dictionary" )
+
+    if "native" in env and type(env["native"]) <> type([]) :
+        raise SCons.Errors.StopError( "native option must be a list" )
         
     return target, source
     
@@ -59,18 +62,19 @@ def __createBuilder( target, source, env ) :
         order = env.get("order", [])
         if order :
             for i in order :
-                if not i in env["layout"] :
+                if not i in env.get("layout", []) :
                     raise SCons.Errors.StopError( "order key [%s] not in the database definition" % (i) )
                 
                 __createTable( env, engine, metadata, connect, i, env["layout"][i] )
         
         # for an ordered structure we can iterate of the data
         else :
-            for tablename, tabledata in env["layout"].iteritems() :
+            for tablename, tabledata in env.get("layout", {}).iteritems() :
                 __createTable( env, engine, metadata, connect, tablename, tabledata )
                 
         # run native code
-        
+        for i in env.get("native", []) :
+            connect.execute( i )
         
         
     except Exception, e :
