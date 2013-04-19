@@ -27,20 +27,24 @@ def __createMessage( s, target, source, env ) :
 #def __updateMessage( s, target, source, env ) :
 #    print "update database [%s] from [%s] ..." % (source[0], target[0])
         
-        
-        
+     
+     
+# emitter for database create builder
+# @param target target file on the local drive
+# @param source URL for download
+# @param env environment object        
 def __createEmitter( target, source, env ) :
-    if not "connection" in env or type(env["connection"]) <> type("") or len(env["connection"]) == 0:
+    if len(env.get("connection", "")) == 0 :
         raise SCons.Errors.StopError( "connection definition must be a non-empty string" )
 
-    if "order" in env and type(env["order"]) <> type([]) :
-        raise SCons.Errors.StopError( "order option must be a list" )
+    if "order" in env and len(env.get("order", [])) == 0 :
+        raise SCons.Errors.StopError( "order option must be a non-empty list" )
 
-    if "layout" in env and type(env["layout"]) <> type({}) :
-        raise SCons.Errors.StopError( "layout definition must be a dictionary" )
+    if "layout" in env and len(env.get("layout", {}).keys()) == 0 :
+        raise SCons.Errors.StopError( "layout definition must be a non-emtpy dictionary" )
 
-    if "native" in env and type(env["native"]) <> type([]) :
-        raise SCons.Errors.StopError( "native option must be a list" )
+    if "native" in env and len(env.get("native", [])) == 0 :
+        raise SCons.Errors.StopError( "native option must be a non-empty list" )
         
     return target, source
     
@@ -49,14 +53,24 @@ def __createEmitter( target, source, env ) :
 # defines the builder of the builder for database creating
 # @param target target file on the local drive
 # @param source URL for download
-# @env environment object
+# @param env environment object
 def __createBuilder( target, source, env ) :
-
     # create the database connection and set the transaction
+    engine      = None
+    metadata    = None
+    connect     = None
+    transaction = None
+    
     try :
-        engine   = sqlalchemy.create_engine(env["connection"], echo = env.get("DATABASE_VERBOSE", False) )   
-        metadata = sqlalchemy.MetaData()
-        connect  = engine.connect()
+        engine      = sqlalchemy.create_engine(env["connection"], echo = env.get("DATABASE_VERBOSE", False) )   
+        metadata    = sqlalchemy.MetaData()
+        connect     = engine.connect()
+        transaction = sqlalchemy.sessionmaker(autocommit=False)
+    except Exception, e :
+        raise SCons.Errors.StopError( e )
+
+
+    try :
         
         # for Python 2.6 we need an orderd dict structure, so we check the "order" parameter
         order = env.get("order", [])
@@ -70,15 +84,18 @@ def __createBuilder( target, source, env ) :
         # for an ordered structure we can iterate of the data
         else :
             for tablename, tabledata in env.get("layout", {}).iteritems() :
-                __createTable( env, engine, metadata, connect, tablename, tabledata )
+                __createTable( env, transaction, transaction, connect, tablename, tabledata )
                 
         # run native code
-        for i in env.get("native", []) :
-            connect.execute( i )
+        #for i in env.get("native", []) :
+        #    transaction.execute( i )
         
-        
+        transaction.commit()
     except Exception, e :
+        transaction.rollback()
         raise SCons.Errors.StopError( e )
+    
+    connect.close()
     
     
 # function that creates all tables in the database
