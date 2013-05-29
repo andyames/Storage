@@ -37,6 +37,7 @@ def __createEmitter( target, source, env ) :
     if len(env.get("connection", "")) == 0 :
         raise SCons.Errors.StopError( "connection definition must be a non-empty string" )
 
+    """
     if "order" in env and len(env.get("order", [])) == 0 :
         raise SCons.Errors.StopError( "order option must be a non-empty list" )
 
@@ -45,6 +46,8 @@ def __createEmitter( target, source, env ) :
 
     if "native" in env and len(env.get("native", [])) == 0 :
         raise SCons.Errors.StopError( "native option must be a non-empty list" )
+        
+    """
         
     return target, source
     
@@ -69,7 +72,7 @@ def __createBuilder( target, source, env ) :
     except Exception, e :
         raise SCons.Errors.StopError( e )
 
-
+    """
     try :
         
         # for Python 2.6 we need an orderd dict structure, so we check the "order" parameter
@@ -94,7 +97,7 @@ def __createBuilder( target, source, env ) :
     except Exception, e :
         transaction.rollback()
         raise SCons.Errors.StopError( e )
-    
+    """
     connect.close()
     
     

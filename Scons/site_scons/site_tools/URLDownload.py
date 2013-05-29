@@ -24,7 +24,7 @@ def __message( s, target, source, env ) :
 # and writes it down to the file
 # @param target target file on the local drive
 # @param source URL for download
-# @env environment object
+# @@param env environment object
 def __action( target, source, env ) :
     try :
         stream = urllib2.urlopen( str(source[0]) )
@@ -39,11 +39,10 @@ def __action( target, source, env ) :
 # defines the emitter of the builder
 # @param target target file on the local drive
 # @param source URL for download
-# @env environment object
+# @param env environment object
 def __emitter( target, source, env ) :
     # we need a temporary file, because the dependency graph
-    # of Scons need a physical existing file (here should be
-    # a pseudo file a nice way)
+    # of Scons need a physical existing file - so we prepare it
     target[0].prepare()
 
     if not env.get("URLDOWNLOAD_USEURLFILENAME", False) :
@@ -62,7 +61,7 @@ def __emitter( target, source, env ) :
 # generate function, that adds the builder to the environment,
 # the value "DOWNLOAD_USEFILENAME" replaces the target name with
 # the filename of the URL
-# @env environment object
+# @param env environment object
 def generate( env ) :
     env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = SCons.Node.Python.Value,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
     env.Replace(URLDOWNLOAD_USEURLFILENAME =  True )

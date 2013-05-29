@@ -5,6 +5,7 @@
 *.pyc
 *.dblite
 *.tgz
+*.graffle
 lapack*
 lua*
 boost*

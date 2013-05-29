@@ -81,68 +81,28 @@ env = Environment( tools = ["default", "URLDownload", "Repository", "Unpack", "D
 # The database builder can create and update database structures which are supported by http://www.sqlalchemy.org/ .
 # The database will be describe like a Python dictionary with the parameters and pushed to the builder
 
-database = {
+#http://docs.sqlalchemy.org/en/rel_0_8/orm/extensions/declarative.html
+Base = sqlalchemy.ext.declarative.declarative_base()
+
+class User(Base) :
+    __tablename__ = 'user'
+
+    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    name = sqlalchemy.Column(sqlalchemy.String(50), nullable=False)
+    #addresses = sqlalchemy.relationship("Address", backref="user")
+
+class Address(Base) :
+    __tablename__ = 'address'
+
+    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    email_address = sqlalchemy.Column(sqlalchemy.String(50), nullable=False)
+    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey('user.id'), nullable=False)
 
 
-    "mytable" : {
-    
-        "fieldA" : {
-            "kind" : "column",
-            "type" : sqlalchemy.String(20)
-        },
-    
-        "fieldB" : {
-            "kind" : "column",
-            "type" : sqlalchemy.String(40)
-        },
-        
-        "fieldC" : {
-            "kind" : "column",
-            "type" : sqlalchemy.String(60)
-        },
-        
-        "pk"     : {
-            "kind"        : "column",
-            "type"        : sqlalchemy.Integer,
-            "primary_key" : True
-        },
-        
-        "insert" : [
-            {"fieldB" : "blub", "fieldA" : "1234"},
-            {"fieldB" : "new blub", "fieldA" : "987"},
-            {"fieldC" : "xxx", "fieldB" : "new blub", "fieldA" : "987"}
-        ]
-        
-    },
-    
-    
-    "mytable2" : {
-        
-        "field1" : {
-            "kind" : "column",
-            "type" : sqlalchemy.String(120)
-        },
-        
-        "field2" : {
-            "kind" : "column",
-            "type" : sqlalchemy.String(180)
-        },
-        
-        "field3" : {
-            "kind" : "index"
-        },
-        
-        "pk"     : {
-            "kind"        : "column",
-            "type"        : sqlalchemy.Integer,
-            "foreignkey"  : "mytable.pk"
-        }
-        
-    }
-    
-}
 
-db = env.DatabaseCreate( "db", "blub", connection="mysql+pymysql://root:root@localhost:8889/scons", layout=database, order=["mytable", "mytable2x"], native=["CREATE TABLE mytable3 (field2 varchar(180) DEFAULT NULL, pk int(11) DEFAULT NULL, field1 varchar(120) DEFAULT NULL)"], DATABASE_VERBOSE = True )
+#, native=["CREATE TABLE mytable3 (field2 varchar(180) DEFAULT NULL, pk int(11) DEFAULT NULL, field1 varchar(120) DEFAULT NULL)"]
+
+db = env.DatabaseCreate( "db", [User, Address], connection="mysql+pymysql://root:root@localhost:8889/scons", DATABASE_VERBOSE = True )
 Default( db )
 AlwaysBuild( db )
 # ==================================================================================================================
