@@ -1,0 +1,4 @@
+import os
+
+env = Environment( ENV = os.environ, CPPDEFINES=["BENCHMARK"] );
+env.Program("benchmark", source=["benchmark.cpp"])
