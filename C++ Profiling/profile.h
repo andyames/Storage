@@ -7,7 +7,7 @@
     #ifndef __PROFILE
     #define __PROFILE
     
-        //#define PROFILE   Benchmark l_benchmark__LINE__(__FUNCTION__);
+        #define PROFILE   Benchmark l_benchmark__LINE__(__FUNCTION__);
 
 
         #include <map>
@@ -47,7 +47,7 @@
             private :
                 
                 Profile( void ) : m_muxtimes(), m_muxmemory(), m_times(), m_memory() {};
-                ~Profile( void ); 
+                ~Profile( void ) {};
                 Profile( const Profile& ) {};
                 Profile& operator=( const Profile& );
             

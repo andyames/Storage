@@ -7,7 +7,7 @@ Profile* Profile::m_instance = NULL;
 
 void func(void)
 {
-    //Benchmark l_benchmark1("xx");
+    PROFILE
     for(std::size_t i=0; i < 100000; ++i)
         ;
 }
@@ -16,7 +16,7 @@ void func(void)
 
 int main(int p_argc, char* p_argv[])
 {
-    //Benchmark l_benchmark1("yy");
+    PROFILE
     func();
-    //std::cout << *Profile::getInstance() << std::endl;
+    std::cout << *Profile::getInstance() << std::endl;
 }

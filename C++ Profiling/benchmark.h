@@ -55,20 +55,20 @@
 
     #ifdef __GNUC__
 
-        #ifdef __i386__
-        inline unsigned long long Benchmark::getCycles(void)
-        {
-            unsigned long long x;
-            __asm__ volatile ("rdtsc" : "=A" (x));
-            return x;
-        }
-
-        #elif defined(__X86_64__)
+        #ifdef __LP64__
         inline unsigned long long Benchmark::getCycles(void)
         {
             unsigned long long a, d;
             __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
             return (d<<32) | a;
+        }
+        
+        #else
+        inline unsigned long long Benchmark::getCycles(void)
+        {
+            unsigned long long x;
+            __asm__ volatile ("rdtsc" : "=A" (x));
+            return x;
         }
         #endif
 
