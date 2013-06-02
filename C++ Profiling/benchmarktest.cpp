@@ -1,6 +1,8 @@
 
 #include <iostream>
-//#include "benchmark.h"
+#include "benchmark.h"
+
+Profile* Profile::m_instance = NULL;
 
 
 void func(void)

@@ -1,4 +1,14 @@
 import os
 
-env = Environment( ENV = os.environ, CPPDEFINES=["BENCHMARK"] );
-env.Program("benchmark", source=["benchmarktest.cpp", "benchmark.cpp", "profile.cpp"], LIBS=["boost_thread"])
+env = Environment( CPPDEFINES=["BENCHMARK"] );
+
+env.AppendUnique(CPPPATH = os.environ["CPPPATH"].split(os.pathsep))
+if "DYLD_LIBRARY_PATH" in os.environ :
+    env.AppendUnique(LIBPATH = os.environ["DYLD_LIBRARY_PATH"].split(os.pathsep)) 
+elif "LD_LIBRARY_PATH" in os.environ :
+    env.AppendUnique(LIBPATH = os.environ["LD_LIBRARY_PATH"].split(os.pathsep)) 
+elif "LIBRARY_PATH" in os.environ :
+    env.AppendUnique(LIBPATH = os.environ["LIBRARY_PATH"].split(os.pathsep)) 
+
+
+env.Program("benchmark", source=["benchmarktest.cpp", "benchmark.cpp", "profile.cpp"], LIBS=["boost_system", "boost_thread"])

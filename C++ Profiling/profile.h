@@ -17,6 +17,7 @@
         #include <iostream>
         #include <stdexcept>
         #include <boost/thread.hpp>
+        #include <boost/foreach.hpp>
         #include "benchmark.h"
         //#include <boost/shared_ptr.hpp>
 
@@ -51,7 +52,6 @@
                 Profile& operator=( const Profile& );
             
                 static void AverageDerivationMedian( const std::vector<unsigned long long>&, double&, double&, unsigned long long& );
-                static unsigned long long getCycles( void );
             
                 static Profile* m_instance;
 
@@ -61,58 +61,6 @@
                 std::map< std::string, std::vector<unsigned long long> > m_memory;
             
         };
-
-
-
-        //http://stackoverflow.com/questions/9887839/clock-cycle-count-wth-gcc
-
-        #ifdef _MSC_VER
-
-            #ifdef _M_IX86
-            inline unsigned long long Benchmark::getCycles(void)
-            {
-                unsigned long long c;
-                __asm {
-                    cpuid 
-                    rdtsc  
-                    mov dword ptr [c + 0], eax
-                    mov dword ptr [c + 4], edx
-                }
-                return c;
-            }
-
-            #elif defined(_M_X64)
-            extern "C" unsigned __int64 __rdtsc();
-            #pragma intrinsic(__rdtsc)
-            inline unsigned long long Benchmark::getCycles()
-            {
-                return __rdtsc();
-            }
-            #endif
-        
-        #endif
-
-
-        #ifdef __GNUC__
-            
-            #ifdef __i386__
-            inline unsigned long long Benchmark::getCycles(void)
-            {
-                unsigned long long x;
-                __asm__ volatile ("rdtsc" : "=A" (x));
-                return x;
-            }
-            
-            #elif defined(__X86_64__)
-            inline unsigned long long Benchmark::getCycles(void)
-            {
-                unsigned long long a, d;
-                __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
-                return (d<<32) | a;
-            }
-            #endif
-
-        #endif
 
     #endif
 

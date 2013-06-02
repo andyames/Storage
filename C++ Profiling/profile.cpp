@@ -27,7 +27,9 @@ void Profile::AverageDerivationMedian( const std::vector<unsigned long long>& p_
     p_average  =  sum / p_vec.size();
     double accum = 0.0;
     
-    std::for_each(p_vec.begin(), p_vec.end(), [&accum](const double& d) { accum += (d - p_average) * (d - p_average); });
+    //Lambda call - only with  C++0x: std::for_each(p_vec.begin(), p_vec.end(), [&accum](const double& d) { accum += (d - p_average) * (d - p_average); });
+    BOOST_FOREACH( double d, p_vec )
+        accum += (d - p_average) * (d - p_average);
     
     p_stdderivation = sqrt(accum / (p_vec.size()-1));
     p_median        = p_vec[(p_vec.size()-1)/2];
@@ -50,7 +52,7 @@ void Profile::setBenchmarkTime( const std::string& p_name, const unsigned long l
 
 
 
-std::ostream& Profile::operator<< ( std::ostream& p_stream, const Profile& p )
+std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
 {
     p_stream << "time performance\n\n";
     p_stream << "------------------------------------------------------------------------------------------------------------------------\n";
@@ -64,7 +66,7 @@ std::ostream& Profile::operator<< ( std::ostream& p_stream, const Profile& p )
         double l_avg;
         double l_stddev;
         unsigned long long l_median;
-        AverageDerivationMedian<unsigned long long>(it->second, l_avg, l_stddev, l_median);
+        Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median);
         p_stream << it->first << "\t\t\t" << l_median << "\t\t\t" << l_avg << "\t\t\t" << l_stddev << "\n";
     }
     
@@ -81,7 +83,7 @@ std::ostream& Profile::operator<< ( std::ostream& p_stream, const Profile& p )
         double l_avg;
         double l_stddev;
         unsigned long long l_median;
-        AverageDerivationMedian<unsigned long long>(it->second, l_avg, l_stddev, l_median);
+        Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median);
         p_stream << it->first << "\t\t\t" << l_median << "\t\t\t" << l_avg << "\t\t\t" << l_stddev << "\n";
     }
     
