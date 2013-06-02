@@ -1,6 +1,8 @@
 #ifndef BENCHMARK
 
     #define PROFILING
+    #define PROFILING_NAME(...)
+
     #define PROFILINGINIT
     #define PROFILINGCLOSE
     #define PROFILINGINSTANCE ""
