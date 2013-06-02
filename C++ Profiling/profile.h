@@ -30,10 +30,13 @@
         #include <iostream>
         #include <stdexcept>
         #include <boost/thread.hpp>
-        #include <boost/foreach.hpp>
+        #include <boost/accumulators/accumulators.hpp>
+        #include <boost/accumulators/statistics/mean.hpp>
+        #include <boost/accumulators/statistics/stats.hpp>
+        #include <boost/accumulators/statistics/median.hpp>
+        #include <boost/accumulators/statistics/variance.hpp>
 
         #include "benchmark.h"
-
 
 
         class Profile
@@ -77,18 +80,21 @@
 
         template<typename T, typename L> inline void Profile::AverageDerivationMedian( const std::vector<T>& p_vec, L& p_average, L& p_stdderivation, T& p_median )
         {
-            L sum      = static_cast<L>(0);
-            BOOST_FOREACH( L d, p_vec )
-                sum   += d;
-            p_average =  sum / p_vec.size();
+            if (p_vec.empty())
+            {
+                p_stdderivation = p_average = static_cast<L>(0);
+                p_median = static_cast<T>(0);
+                return;
+            }
             
-            L accum    = static_cast<L>(0);
-            //Lambda call - only with  C++0x: std::for_each(p_vec.begin(), p_vec.end(), [&accum](const double& d) { accum += (d - p_average) * (d - p_average); });
-            BOOST_FOREACH( L d, p_vec )
-                accum += (d - p_average) * (d - p_average);
-                
-            p_stdderivation = sqrt(accum / (p_vec.size()-1));
-            p_median        = p_vec[(p_vec.size()-1)/2];
+            
+            boost::accumulators::accumulator_set<T, boost::accumulators::stats< boost::accumulators::tag::median, boost::accumulators::tag::mean, boost::accumulators::tag::variance > > l_acc;
+            std::for_each( p_vec.begin(), p_vec.end(), boost::bind<void>( boost::ref(l_acc), _1 ));
+            
+            
+            p_stdderivation = sqrt( boost::accumulators::variance(l_acc) );
+            p_average       = boost::accumulators::mean(l_acc);
+            p_median        = boost::accumulators::median(l_acc);
         }
 
         template<typename T> inline std::string Profile::convert( const T& p_in )
