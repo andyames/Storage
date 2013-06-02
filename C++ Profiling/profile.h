@@ -31,6 +31,8 @@
         #include <stdexcept>
         #include <boost/thread.hpp>
         #include <boost/accumulators/accumulators.hpp>
+        #include <boost/accumulators/statistics/min.hpp>
+        #include <boost/accumulators/statistics/max.hpp>
         #include <boost/accumulators/statistics/mean.hpp>
         #include <boost/accumulators/statistics/stats.hpp>
         #include <boost/accumulators/statistics/median.hpp>
@@ -64,7 +66,7 @@
                 Profile& operator=( const Profile& );
             
                 template<typename T> static std::string convert( const T& );
-                template<typename T, typename L> static void AverageDerivationMedian( const std::vector<T>&, L&, L&, T& );
+                template<typename T, typename L> static void AverageDerivationMedian( const std::vector<T>&, L&, L&, T&, T&, T& );
                 static std::string repeat( const std::size_t&, const std::string& = " " );
             
                 static Profile* m_instance;
@@ -78,7 +80,7 @@
 
 
 
-        template<typename T, typename L> inline void Profile::AverageDerivationMedian( const std::vector<T>& p_vec, L& p_average, L& p_stdderivation, T& p_median )
+        template<typename T, typename L> inline void Profile::AverageDerivationMedian( const std::vector<T>& p_vec, L& p_average, L& p_stdderivation, T& p_median, T& p_min, T& p_max )
         {
             if (p_vec.empty())
             {
@@ -88,13 +90,23 @@
             }
             
             
-            boost::accumulators::accumulator_set<T, boost::accumulators::stats< boost::accumulators::tag::median, boost::accumulators::tag::mean, boost::accumulators::tag::variance > > l_acc;
+            boost::accumulators::accumulator_set<T, 
+                boost::accumulators::stats< 
+                    boost::accumulators::tag::median, 
+                    boost::accumulators::tag::mean, 
+                    boost::accumulators::tag::variance,
+                    boost::accumulators::tag::min,
+                    boost::accumulators::tag::max
+                >
+            > l_acc;
             std::for_each( p_vec.begin(), p_vec.end(), boost::bind<void>( boost::ref(l_acc), _1 ));
             
             
             p_stdderivation = sqrt( boost::accumulators::variance(l_acc) );
             p_average       = boost::accumulators::mean(l_acc);
             p_median        = boost::accumulators::median(l_acc);
+            p_min           = boost::accumulators::min(l_acc);
+            p_max           = boost::accumulators::max(l_acc);
         }
 
         template<typename T> inline std::string Profile::convert( const T& p_in )

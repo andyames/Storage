@@ -48,12 +48,12 @@
 
     std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
     {
-        const std::size_t l_break       = 20;
-        const std::string l_columns[]   = { std::string("function name"), std::string("median"), std::string("average"), std::string("standard deviation") };
+        const std::size_t l_break       = 15;
+        const std::string l_columns[]   = { std::string("function name"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
         const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
         
         std::string l_help(" time performance ");
-        p_stream << "\n---" << l_help << Profile::repeat(120-3-l_help.size(), "-") << "\n";
+        p_stream << "\n---" << l_help << Profile::repeat(160-3-l_help.size(), "-") << "\n";
         for(std::size_t i=0; i < l_columncount; ++i)
         {
             p_stream << l_columns[i];
@@ -67,13 +67,18 @@
             if (it->second.empty())
                 continue;
             
-            double l_avg;
-            double l_stddev;
-            unsigned long long l_median;
-            Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median);
+            double l_avg, l_stddev;
+            unsigned long long l_median, l_min, l_max;
+            Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median, l_min, l_max);
             
             
             p_stream << it->first << Profile::repeat(l_break+l_columns[0].size()-it->first.size());
+            
+            l_help = Profile::convert(l_min);
+            p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
+            
+            l_help = Profile::convert(l_max);
+            p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
             
             l_help = Profile::convert(l_median);
             p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
@@ -87,23 +92,6 @@
             p_stream << "\n";
         }
         
-        /*
-        p_stream << "\n\n\nmemory usage\n\n";
-        p_stream << Profile::repeat(80, "-") << "\n";
-        p_stream << "function name" <<  Profile::repeat(l_break) << "median" << Profile::repeat(l_break) << "average" << Profile::repeat(l_break) << "standard deviation\n\n";
-        
-        for(std::map< std::string, std::vector<unsigned long long> >::const_iterator it = p.m_memory.begin(); it != p.m_memory.end(); it++)
-        {
-            if (it->second.empty())
-                continue;
-            
-            double l_avg;
-            double l_stddev;
-            unsigned long long l_median;
-            Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median);
-            p_stream << it->first << "\t\t\t" << l_median << "\t\t\t" << l_avg << "\t\t\t" << l_stddev << "\n";
-        }
-         */
         
         return p_stream;
     }
