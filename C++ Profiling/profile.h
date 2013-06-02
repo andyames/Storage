@@ -14,8 +14,6 @@
         #define PROFILING            Benchmark l_benchmark__LINE__(__FUNCTION__);
         #define PROFILING_NAME(name) Benchmark l_benchmark__LINE__(name);
 
-        
-
         #define PROFILINGINIT Profile::createInstance();
         #define PROFILINGCLOSE Profile::releaseInstance();
         #define PROFILINGINSTANCE *Profile::getInstance()
