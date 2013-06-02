@@ -2,12 +2,13 @@
 #include <iostream>
 #include "benchmark.h"
 
-Profile* Profile::m_instance = NULL;
+
+PROFILINGDEFINITION
 
 
 void func(void)
 {
-    PROFILE
+    PROFILING
     for(std::size_t i=0; i < 100000; ++i)
         ;
 }
@@ -16,7 +17,11 @@ void func(void)
 
 int main(int p_argc, char* p_argv[])
 {
-    PROFILE
+    PROFILINGINIT
+    
+    PROFILING
     func();
-    std::cout << *Profile::getInstance() << std::endl;
+    std::cout << PROFILINGINSTANCE << std::endl;
+    
+    PROFILINGCLOSE
 }

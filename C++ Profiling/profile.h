@@ -1,25 +1,34 @@
 #ifndef BENCHMARK
 
-    #define PROFILE
+    #define PROFILING
+    #define PROFILINGINIT
+    #define PROFILINGCLOSE
+    #define PROFILINGINSTANCE ""
+    #define PROFILINGDEFINITION
 
 #else
     
     #ifndef __PROFILE
     #define __PROFILE
     
-        #define PROFILE   Benchmark l_benchmark__LINE__(__FUNCTION__);
+        #define PROFILING  Benchmark l_benchmark__LINE__(__FUNCTION__);
+        #define PROFILINGINIT Profile::createInstance();
+        #define PROFILINGCLOSE Profile::releaseInstance();
+        #define PROFILINGINSTANCE *Profile::getInstance()
+        #define PROFILINGDEFINITION Profile* Profile::m_instance = NULL;
 
 
         #include <map>
-        #include <vector>
         #include <string>
+        #include <vector>
         #include <numeric>
+        #include <sstream>
         #include <iostream>
         #include <stdexcept>
         #include <boost/thread.hpp>
         #include <boost/foreach.hpp>
+
         #include "benchmark.h"
-        //#include <boost/shared_ptr.hpp>
 
 
 
@@ -35,10 +44,6 @@
                 std::map<std::string, std::vector<unsigned long long> > getMemory( void ) const;
                 void setBenchmarkTime( const std::string&, const unsigned long long& ); 
             
-                //void setBenchmarkMemory( const std::string& p_name, ??? )
-                //boost::shared_ptr<Benchmark> benchmark( const std::string& ) const;
-                
-            
                 friend std::ostream& operator<< ( std::ostream&, const Profile& );
 
             
@@ -51,7 +56,9 @@
                 Profile( const Profile& ) {};
                 Profile& operator=( const Profile& );
             
-                static void AverageDerivationMedian( const std::vector<unsigned long long>&, double&, double&, unsigned long long& );
+                template<typename T> static std::string convert( const T& );
+                template<typename T> static void AverageDerivationMedian( const std::vector<T>&, double&, double&, T& );
+                static std::string repeat( const std::size_t&, const std::string& = " " );
             
                 static Profile* m_instance;
 
@@ -61,6 +68,29 @@
                 std::map< std::string, std::vector<unsigned long long> > m_memory;
             
         };
+
+
+
+        template<typename T> inline void Profile::AverageDerivationMedian( const std::vector<T>& p_vec, double& p_average, double& p_stdderivation, T& p_median )
+        {
+            double sum = std::accumulate(p_vec.begin(), p_vec.begin(), 0.0);
+            p_average  =  sum / p_vec.size();
+            double accum = 0.0;
+            
+            //Lambda call - only with  C++0x: std::for_each(p_vec.begin(), p_vec.end(), [&accum](const double& d) { accum += (d - p_average) * (d - p_average); });
+            BOOST_FOREACH( double d, p_vec )
+                accum += (d - p_average) * (d - p_average);
+            
+            p_stdderivation = sqrt(accum / (p_vec.size()-1));
+            p_median        = p_vec[(p_vec.size()-1)/2];
+        }
+
+        template<typename T> inline std::string Profile::convert( const T& p_in )
+        {
+            std::ostringstream os;
+            os << p_in;
+            return os.str();
+        }
 
     #endif
 
