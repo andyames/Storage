@@ -19,7 +19,6 @@ int main(int p_argc, char* p_argv[])
 {
     PROFILINGINIT
     
-    PROFILING
     func();
     std::cout << PROFILINGINSTANCE << std::endl;
     
