@@ -1,4 +1,4 @@
 import os
 
 env = Environment( ENV = os.environ, CPPDEFINES=["BENCHMARK"] );
-env.Program("benchmark", source=["benchmark.cpp"])
+env.Program("benchmark", source=["benchmarktest.cpp", "benchmark.cpp", "profile.cpp"], LIBS=["boost_thread"])

@@ -1,21 +1,14 @@
+#include "benchmark.h"
 
-#include <iostream>
-#include "profile.hpp"
+Benchmark::Benchmark( const std::string& p_functionname ) : 
+    m_functionname(p_functionname), 
+    m_starttime(getCycles())
+{};
 
-
-void func(void)
+Benchmark::~Benchmark( void )
 {
-    #PROFILE
-    
-    for(std::size_t i=0; i < 100000; ++i)
-        ;
-}
+    m_endtime = getCycles();
+    Profile::getInstance()->setBenchmarkTime( m_functionname, m_endtime-m_starttime);
+};
 
 
-
-int main(int p_argc, char* p_argv[])
-{
-    #PROFILE
-    func();
-    std::cout << *Profile::getInstance() << std::endl;
-}
