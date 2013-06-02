@@ -20,6 +20,9 @@ int main(int p_argc, char* p_argv[])
     PROFILINGINIT
     
     func();
+    func();
+    func();
+    
     std::cout << PROFILINGINSTANCE << std::endl;
     
     PROFILINGCLOSE
