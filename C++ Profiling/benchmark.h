@@ -24,6 +24,10 @@
                 static unsigned long long getCycles( void );
         };
 
+        // http://linux.die.net/man/2/getrusage
+        // http://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+        // http://www.gamasutra.com/view/feature/1430/monitoring_your_pcs_memory_usage_.php?print=1
+        // http://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use
 
 
         //http://stackoverflow.com/questions/9887839/clock-cycle-count-wth-gcc
