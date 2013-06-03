@@ -1,25 +1,25 @@
 #ifndef BENCHMARK
 
     #define PROFILING
-    #define PROFILING_NAME(...)
+    #define PROFILINGNAME(name)
 
     #define PROFILINGINIT
-    #define PROFILINGCLOSE
-    #define PROFILINGINSTANCE ""
+    #define PROFILINGRELEASE
     #define PROFILINGDEFINITION
+    #define PROFILINGSHOW
 
 #else
     
     #ifndef __PROFILE
     #define __PROFILE
     
-        #define PROFILING            Benchmark l_benchmark__LINE__(__FUNCTION__);
-        #define PROFILING_NAME(name) Benchmark l_benchmark__LINE__(name);
+        #define PROFILING               Benchmark l_benchmark__LINE__(__FUNCTION__);
+        #define PROFILINGNAME(name)     Benchmark l_benchmark__LINE__(name);
 
-        #define PROFILINGINIT Profile::createInstance();
-        #define PROFILINGCLOSE Profile::releaseInstance();
-        #define PROFILINGINSTANCE *Profile::getInstance()
-        #define PROFILINGDEFINITION Profile* Profile::m_instance = NULL;
+        #define PROFILINGINIT           Profile::createInstance();
+        #define PROFILINGRELEASE        Profile::releaseInstance();
+        #define PROFILINGDEFINITION     Profile* Profile::m_instance = NULL;
+        #define PROFILINGSHOW           std::cout << *Profile::getInstance() << std::endl;
 
 
         #include <map>
