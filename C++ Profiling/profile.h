@@ -53,6 +53,7 @@
                 std::map<std::string, std::vector<unsigned long long> > getTimes( void ) const;
                 std::map<std::string, std::vector<unsigned long long> > getMemory( void ) const;
                 void setBenchmarkTime( const std::string&, const unsigned long long& ); 
+                static std::size_t getMemorySize(void);
             
                 friend std::ostream& operator<< ( std::ostream&, const Profile& );
 
