@@ -193,7 +193,7 @@
         // memory performance
         l_help = " memory usage ";
         p_stream << "\n\n\n---" << l_help << Profile::repeat(160-3-l_help.size(), "-") << "\n";
-        p_stream << "memory size (bytes) : " << Profile::repeat(6) << Profile::getMemorySize() << "\n";
+        p_stream << "physical memory (bytes) : " << Profile::repeat(2) << Profile::getMemorySize() << "\n";
         
         return p_stream;
     }
