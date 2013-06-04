@@ -31,10 +31,11 @@
 
     void Profile::setBenchmarkTime( const std::string& p_name, const unsigned long long& p_time )
     {
-        boost::lock_guard<boost::mutex> l_lock(m_muxtimes);
+        m_locktimes.lock();
         if (m_times.find(p_name) == m_times.end())
             m_times[p_name] = std::vector<unsigned long long>(); 
         m_times[p_name].push_back(p_time);
+        m_locktimes.unlock();
     }
 
     std::string Profile::repeat( const std::size_t& p_times, const std::string& p_str )

@@ -29,7 +29,8 @@
         #include <sstream>
         #include <iostream>
         #include <stdexcept>
-        #include <boost/thread.hpp>
+        #include <boost/bind.hpp>
+        #include <boost/atomic.hpp>
         #include <boost/accumulators/accumulators.hpp>
         #include <boost/accumulators/statistics/min.hpp>
         #include <boost/accumulators/statistics/max.hpp>
@@ -59,25 +60,53 @@
             
             
             private :
+            
+                class Spinlock {
+                  
+                    public :
+                    
+                        Spinlock( void ) : m_state(Unlocked) {};
+                        ~Spinlock( void ) { unlock(); };
+                    
+                        void lock( void )
+                        {
+                            while (m_state.exchange(Locked, boost::memory_order_relaxed) == Locked)
+                                __asm__ __volatile__ ("rep; nop" : : );
+                            atomic_thread_fence(boost::memory_order_acquire);     
+                        };
+                    
+                        void unlock( void )
+                        {
+                            m_state.store(Unlocked, boost::memory_order_release);
+                        };
+                    
+                    
+                    private :
+                    
+                        typedef enum {Locked, Unlocked} LockState;
+                        boost::atomic<LockState> m_state;
+                    
+                };
+            
                 
-                Profile( void ) : m_muxtimes(), m_muxmemory(), m_times(), m_memory() {};
+            
+                static Profile* m_instance;
+
+                Spinlock m_locktimes;
+                std::map< std::string, std::vector<unsigned long long> > m_times;
+                std::map< std::string, std::vector<unsigned long long> > m_memory;
+
+            
+                Profile( void ) : m_locktimes(), m_times(), m_memory() {};
                 ~Profile( void ) {};
                 Profile( const Profile& ) {};
                 Profile& operator=( const Profile& );
-            
+                
                 template<typename T> static std::string convert( const T& );
                 template<typename T, typename L> static void AverageDerivationMedian( const std::vector<T>&, L&, L&, T&, T&, T& );
                 static std::string repeat( const std::size_t&, const std::string& = " " );
             
-                static Profile* m_instance;
-
-                boost::mutex m_muxtimes;
-                boost::mutex m_muxmemory;
-                std::map< std::string, std::vector<unsigned long long> > m_times;
-                std::map< std::string, std::vector<unsigned long long> > m_memory;
-            
         };
-
 
 
         template<typename T, typename L> inline void Profile::AverageDerivationMedian( const std::vector<T>& p_vec, L& p_average, L& p_stdderivation, T& p_median, T& p_min, T& p_max )

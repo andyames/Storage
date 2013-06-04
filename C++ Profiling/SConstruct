@@ -10,5 +10,4 @@ elif "LD_LIBRARY_PATH" in os.environ :
 elif "LIBRARY_PATH" in os.environ :
     env.AppendUnique(LIBPATH = os.environ["LIBRARY_PATH"].split(os.pathsep)) 
 
-
-env.Program("benchmark", source=["benchmarktest.cpp", "benchmark.cpp", "profile.cpp"], LIBS=["boost_system", "boost_thread"])
+env.Program("benchmark", source=["benchmarktest.cpp", "benchmark.cpp", "profile.cpp"])
