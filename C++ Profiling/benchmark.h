@@ -38,6 +38,7 @@
         // http://www.codeproject.com/Articles/10520/Detecting-memory-leaks-by-using-CRT-diagnostic-fun
         // http://www.linuxtopia.org/online_books/programming_books/thinking_in_c++/Chapter13_016.html
         // http://www.gnu.org/software/libc/manual/html_node/Hooks-for-Malloc.html
+        // http://stackoverflow.com/questions/929893/how-can-i-override-malloc-calloc-free-etc-under-os-x
 
 
         //http://stackoverflow.com/questions/9887839/clock-cycle-count-wth-gcc
