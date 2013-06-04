@@ -13,7 +13,7 @@
     #ifndef __PROFILE
     #define __PROFILE
     
-        #define PROFILING               Benchmark l_benchmark__LINE__(__FUNCTION__);
+        #define PROFILING               Benchmark l_benchmark__LINE__(__PRETTY_FUNCTION__);
         #define PROFILINGNAME(name)     Benchmark l_benchmark__LINE__(name);
 
         #define PROFILINGINIT           Profile::createInstance();
