@@ -24,6 +24,7 @@
                 static unsigned long long getCycles( void );
         };
 
+        // http://www.codeproject.com/Articles/184046/Spin-Lock-in-C
         // http://linux.die.net/man/2/getrusage
         // http://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
         // http://www.gamasutra.com/view/feature/1430/monitoring_your_pcs_memory_usage_.php?print=1
