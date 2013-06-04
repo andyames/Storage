@@ -2,8 +2,7 @@
 #include <iostream>
 #include "benchmark.h"
 
-
-PROFILINGDEFINITION
+PROFILINGINIT
 
 
 void func(void)
@@ -19,12 +18,9 @@ void func(void)
 
 int main(int p_argc, char* p_argv[])
 {
-    PROFILINGINIT
-    
     func();
     func();
     func();
     
-    PROFILINGSHOW
-    PROFILINGRELEASE
+    PROFILINGCOUT
 }

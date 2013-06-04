@@ -31,19 +31,6 @@
     }
 
 
-    void Profile::createInstance( void )
-    {
-        if (!m_instance)
-            m_instance = new Profile();
-    }
-
-
-    void Profile::releaseInstance( void )
-    {
-        delete m_instance;
-    }
-
-
     std::map<std::string, std::vector<unsigned long long> > Profile::getTimes( void ) const { return m_times; }
 
 
@@ -144,7 +131,7 @@
 
     std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
     {
-        const std::size_t l_break       = 15;
+        const std::size_t l_break       = 20;
         const std::string l_columns[]   = { std::string("function name"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
         const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
         
