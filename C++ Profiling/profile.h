@@ -20,9 +20,11 @@
         #define PROFILINGCOUT           std::cout << *Profile::getInstance() << std::endl;
 
 
+        #include <ios>
         #include <map>
         #include <string>
         #include <vector>
+        #include <iomanip>
         #include <numeric>
         #include <sstream>
         #include <iostream>
@@ -115,15 +117,13 @@
                 Profile( const Profile& ) {};
                 Profile& operator=( const Profile& );
                 
-                template<typename T> static std::string convert( const T& );
-                static std::string repeat( const std::size_t&, const std::string& = " " );
-            
+                template<typename T> static std::string convert( const T&, const std::size_t& = 5 );
         };
 
-        template<typename T> inline std::string Profile::convert( const T& p_in )
+        template<typename T> inline std::string Profile::convert( const T& p_in, const std::size_t& p )
         {
             std::ostringstream os;
-            os << p_in;
+            os << std::fixed << std::setprecision(p) << p_in;
             return os.str();
         }
 

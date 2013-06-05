@@ -114,15 +114,6 @@
     }
 
 
-    std::string Profile::repeat( const std::size_t& p_times, const std::string& p_str )
-    {
-        std::ostringstream os;
-        for(int i = 0; i < p_times; i++)
-            os << p_str;
-        return os.str();
-    }
-
-
     std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
     {
         const std::size_t l_length      = 215;
@@ -130,45 +121,48 @@
         const std::size_t l_break       = 15;
         const std::string l_columns[]   = { std::string("function name"), std::string("call count"), std::string("accumulation"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
         const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
+
+
+        p_stream << std::left;
         
         // time performance
         std::string l_help(" time performance (in ms) ");
-        p_stream << "\n---" << l_help << Profile::repeat(l_length-3-l_help.size(), "-") << "\n";
+        p_stream << "\n---" << l_help << std::string(l_length-3-l_help.size(), '-')  << "\n";
         for(std::size_t i=0; i < l_columncount; ++i)
         {
             p_stream << l_columns[i];
             if (i < l_columncount - 1)
                 if (!i)
-                    p_stream << Profile::repeat(l_break+l_first);
+                    p_stream << std::string(l_break+l_first, ' ');
                 else 
-                    p_stream << Profile::repeat(l_break);
+                    p_stream << std::string(l_break, ' ');
         }
         p_stream << "\n\n";
             
         for(std::map< std::string, Profile::Accumulator >::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
         {
-            p_stream << it->first << Profile::repeat(l_break+l_first+l_columns[0].size()-it->first.size());
+            p_stream << it->first << std::string(l_break+l_first+l_columns[0].size()-it->first.size(), ' ');
             
             l_help = Profile::convert(boost::accumulators::count(it->second));
-            p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
+            p_stream << l_help << std::string(l_break+l_columns[1].size()-l_help.size(), ' ');
 
             l_help = Profile::convert(boost::accumulators::sum(it->second));
-            p_stream << l_help << Profile::repeat(l_break+l_columns[2].size()-l_help.size());
+            p_stream << l_help << std::string(l_break+l_columns[2].size()-l_help.size(), ' ');
             
             l_help = Profile::convert(boost::accumulators::min(it->second));
-            p_stream << l_help << Profile::repeat(l_break+l_columns[3].size()-l_help.size());
+            p_stream << l_help << std::string(l_break+l_columns[3].size()-l_help.size(), ' ');
             
             l_help = Profile::convert(boost::accumulators::max(it->second));
-            p_stream << l_help << Profile::repeat(l_break+l_columns[4].size()-l_help.size());
+            p_stream << l_help << std::string(l_break+l_columns[4].size()-l_help.size(), ' ');
             
             l_help = Profile::convert(boost::accumulators::median(it->second));
-            p_stream << l_help << Profile::repeat(l_break+l_columns[5].size()-l_help.size());
+            p_stream << l_help << std::string(l_break+l_columns[5].size()-l_help.size(), ' ');
             
             l_help = Profile::convert(boost::accumulators::mean(it->second) );
-            p_stream << l_help << Profile::repeat(l_break+l_columns[6].size()-l_help.size());
+            p_stream << l_help << std::string(l_break+l_columns[6].size()-l_help.size(), ' ');
             
             l_help = Profile::convert(sqrt(boost::accumulators::variance(it->second)));
-            p_stream << l_help << Profile::repeat(l_break+l_columns[7].size()-l_help.size());
+            p_stream << l_help << std::string(l_break+l_columns[7].size()-l_help.size(), ' ');
             
             p_stream << "\n";
         }
@@ -176,8 +170,8 @@
         
         // memory performance
         l_help = " memory usage ";
-        p_stream << "\n\n\n---" << l_help << Profile::repeat(l_length-3-l_help.size(), "-") << "\n";
-        p_stream << "physical memory (bytes) :" << Profile::repeat(3) << Profile::getMemorySize() << "\n";
+        p_stream << "\n\n\n---" << l_help << std::string(l_length-3-l_help.size(), '-') << std::endl;
+        p_stream << "physical memory (bytes) :" << std::string(3, ' ') << Profile::getMemorySize() << std::endl;
         
         return p_stream;
     }
