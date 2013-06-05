@@ -54,7 +54,6 @@
                 static Profile* getInstance( void );
             
                 static std::size_t getMemorySize(void);
-                double getCPUFrequency(void) const;
             
                 void setBenchmarkTime( const std::string&, const double& ); 
             
