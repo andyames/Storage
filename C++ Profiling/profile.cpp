@@ -36,9 +36,17 @@
 
     std::map<std::string, std::vector<unsigned long long> > Profile::getMemory( void ) const { return m_memory; }
 
+    std::map<std::string, unsigned long long> Profile::getCalls( void ) const { return m_calls; }
+
 
     void Profile::setBenchmarkTime( const std::string& p_name, const unsigned long long& p_time )
     {
+        m_lockcalls.lock();
+        if (m_calls.find(p_name) == m_calls.end())
+            m_calls[p_name] = 0;
+        m_calls[p_name]++;
+        m_lockcalls.unlock();
+        
         m_locktimes.lock();
         if (m_times.find(p_name) == m_times.end())
             m_times[p_name] = std::vector<unsigned long long>(); 
@@ -132,12 +140,12 @@
     std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
     {
         const std::size_t l_break       = 20;
-        const std::string l_columns[]   = { std::string("function name"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
+        const std::string l_columns[]   = { std::string("function name [call count / acc. cycles]"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
         const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
         
         // time performance
-        std::string l_help(" time performance ");
-        p_stream << "\n---" << l_help << Profile::repeat(160-3-l_help.size(), "-") << "\n";
+        std::string l_help(" time performance (cpu cycles) ");
+        p_stream << "\n---" << l_help << Profile::repeat(220-3-l_help.size(), "-") << "\n";
         for(std::size_t i=0; i < l_columncount; ++i)
         {
             p_stream << l_columns[i];
@@ -152,11 +160,12 @@
                 continue;
             
             double l_avg, l_stddev;
-            unsigned long long l_median, l_min, l_max;
-            Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median, l_min, l_max);
+            unsigned long long l_median, l_min, l_max, l_sum;
+            Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median, l_min, l_max, l_sum);
             
             
-            p_stream << it->first << Profile::repeat(l_break+l_columns[0].size()-it->first.size());
+            l_help = it->first + " [" + Profile::convert( p.m_calls.find(it->first)->second ) + " / " + Profile::convert(l_sum) + "]";
+            p_stream << l_help << Profile::repeat(l_break+l_columns[0].size()-l_help.size());
             
             l_help = Profile::convert(l_min);
             p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
@@ -179,7 +188,7 @@
         
         // memory performance
         l_help = " memory usage ";
-        p_stream << "\n\n\n---" << l_help << Profile::repeat(160-3-l_help.size(), "-") << "\n";
+        p_stream << "\n\n\n---" << l_help << Profile::repeat(220-3-l_help.size(), "-") << "\n";
         p_stream << "physical memory (bytes) : " << Profile::repeat(2) << Profile::getMemorySize() << "\n";
         
         return p_stream;
