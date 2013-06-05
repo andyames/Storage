@@ -35,9 +35,10 @@
         #include <boost/accumulators/statistics/max.hpp>
         #include <boost/accumulators/statistics/mean.hpp>
         #include <boost/accumulators/statistics/stats.hpp>
+        #include <boost/accumulators/statistics/count.hpp>
         #include <boost/accumulators/statistics/median.hpp>
         #include <boost/accumulators/statistics/variance.hpp>
-
+        
         #include "benchmark.h"
 
 
@@ -51,11 +52,9 @@
                 static Profile* getInstance( void );
             
                 static std::size_t getMemorySize(void);
-                std::map<std::string, std::vector<unsigned long long> > getTimes( void ) const;
-                std::map<std::string, std::vector<unsigned long long> > getMemory( void ) const;
-                std::map<std::string, unsigned long long> getCalls( void ) const;
+                double getCPUFrequency(void) const;
             
-                void setBenchmarkTime( const std::string&, const unsigned long long& ); 
+                void setBenchmarkTime( const std::string&, const double& ); 
             
                 friend std::ostream& operator<< ( std::ostream&, const Profile& );
 
@@ -63,6 +62,17 @@
             
             
             private :
+            
+                typedef boost::accumulators::accumulator_set<double, boost::accumulators::stats< 
+                            boost::accumulators::tag::count,
+                            boost::accumulators::tag::sum,
+                            boost::accumulators::tag::median, 
+                            boost::accumulators::tag::mean, 
+                            boost::accumulators::tag::variance,
+                            boost::accumulators::tag::min,
+                            boost::accumulators::tag::max
+                        > > Accumulator;
+            
             
                 class Spinlock {
                   
@@ -96,54 +106,19 @@
                 static Profile* m_instance;
 
                 Spinlock m_locktimes;
-                Spinlock m_lockcalls;
-                std::map< std::string, unsigned long long > m_calls;
-                std::map< std::string, std::vector<unsigned long long> > m_times;
-                std::map< std::string, std::vector<unsigned long long> > m_memory;
+                std::map< std::string, Accumulator > m_times;
+                std::map< std::string, Accumulator > m_memory;
 
             
-                Profile( void ) : m_locktimes(), m_lockcalls(), m_calls(), m_times(), m_memory() {};
+                Profile( void ) : m_locktimes(), m_times(), m_memory() {};
                 ~Profile( void ) {};
                 Profile( const Profile& ) {};
                 Profile& operator=( const Profile& );
                 
                 template<typename T> static std::string convert( const T& );
-                template<typename T, typename L> static void AverageDerivationMedian( const std::vector<T>&, L&, L&, T&, T&, T&, T& );
                 static std::string repeat( const std::size_t&, const std::string& = " " );
             
         };
-
-
-        template<typename T, typename L> inline void Profile::AverageDerivationMedian( const std::vector<T>& p_vec, L& p_average, L& p_stdderivation, T& p_median, T& p_min, T& p_max, T& p_sum )
-        {
-            if (p_vec.empty())
-            {
-                p_stdderivation = p_average = static_cast<L>(0);
-                p_median = static_cast<T>(0);
-                return;
-            }
-            
-            
-            boost::accumulators::accumulator_set<T, 
-                boost::accumulators::stats< 
-                    boost::accumulators::tag::sum,
-                    boost::accumulators::tag::median, 
-                    boost::accumulators::tag::mean, 
-                    boost::accumulators::tag::variance,
-                    boost::accumulators::tag::min,
-                    boost::accumulators::tag::max
-                >
-            > l_acc;
-            std::for_each( p_vec.begin(), p_vec.end(), boost::bind<void>( boost::ref(l_acc), _1 ));
-            
-            
-            p_stdderivation = sqrt( boost::accumulators::variance(l_acc) );
-            p_average       = boost::accumulators::mean(l_acc);
-            p_median        = boost::accumulators::median(l_acc);
-            p_min           = boost::accumulators::min(l_acc);
-            p_max           = boost::accumulators::max(l_acc);
-            p_sum           = boost::accumulators::sum(l_acc);
-        }
 
         template<typename T> inline std::string Profile::convert( const T& p_in )
         {

@@ -5,6 +5,11 @@
     #ifndef __BENCHMARK
     #define __BENCHMARK
 
+        #if (defined(__APPLE__) && defined(__MACH__))
+            #include <mach/mach.h>
+            #include <mach/mach_time.h>
+        #endif
+
         class Benchmark
         {
             public :
@@ -19,9 +24,9 @@
             
                 unsigned long long m_starttime;
             
-                unsigned long long m_endtime;
-            
                 static unsigned long long getCycles( void );
+                static double getCPUFrequencyScale( void );
+            
         };
 
         // http://www.codeproject.com/Articles/184046/Spin-Lock-in-C
@@ -67,10 +72,7 @@
             }
             #endif
 
-        #endif
-
-
-        #ifdef __GNUC__
+        #elif defined(__unix__) || defined(__unix) || defined(unix)
 
             #ifdef __LP64__
             inline unsigned long long Benchmark::getCycles(void)
@@ -89,6 +91,11 @@
             }
             #endif
 
+        #elif defined(__APPLE__) && defined(__MACH__)
+            inline unsigned long long Benchmark::getCycles(void) { return mach_absolute_time(); }
+        
+        #else 
+            #error "Unable to define getCycles( ) for an unknown OS."
         #endif
 
     #endif

@@ -31,26 +31,12 @@
     }
 
 
-    std::map<std::string, std::vector<unsigned long long> > Profile::getTimes( void ) const { return m_times; }
-
-
-    std::map<std::string, std::vector<unsigned long long> > Profile::getMemory( void ) const { return m_memory; }
-
-    std::map<std::string, unsigned long long> Profile::getCalls( void ) const { return m_calls; }
-
-
-    void Profile::setBenchmarkTime( const std::string& p_name, const unsigned long long& p_time )
+    void Profile::setBenchmarkTime( const std::string& p_name, const double& p_time )
     {
-        m_lockcalls.lock();
-        if (m_calls.find(p_name) == m_calls.end())
-            m_calls[p_name] = 0;
-        m_calls[p_name]++;
-        m_lockcalls.unlock();
-        
         m_locktimes.lock();
         if (m_times.find(p_name) == m_times.end())
-            m_times[p_name] = std::vector<unsigned long long>(); 
-        m_times[p_name].push_back(p_time);
+            m_times[p_name] = Accumulator();
+        m_times[p_name](p_time);
         m_locktimes.unlock();
     }
 
@@ -124,7 +110,7 @@
             #endif /* sysctl and sysconf variants */
         #endif
         
-        return 0L;
+        return 0;
     }
 
 
@@ -139,48 +125,49 @@
 
     std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
     {
-        const std::size_t l_break       = 20;
-        const std::string l_columns[]   = { std::string("function name [call count / acc. cycles]"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
+        const std::size_t l_first       = 25;
+        const std::size_t l_break       = 12;
+        const std::string l_columns[]   = { std::string("function name"), std::string("call count"), std::string("accumulation"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
         const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
         
         // time performance
-        std::string l_help(" time performance (cpu cycles) ");
-        p_stream << "\n---" << l_help << Profile::repeat(220-3-l_help.size(), "-") << "\n";
+        std::string l_help(" time performance (in ms) ");
+        p_stream << "\n---" << l_help << Profile::repeat(205-3-l_help.size(), "-") << "\n";
         for(std::size_t i=0; i < l_columncount; ++i)
         {
             p_stream << l_columns[i];
             if (i < l_columncount - 1)
-                p_stream << Profile::repeat(l_break);
+                if (!i)
+                    p_stream << Profile::repeat(l_break+l_first);
+                else 
+                    p_stream << Profile::repeat(l_break);
         }
         p_stream << "\n\n";
             
-        for(std::map< std::string, std::vector<unsigned long long> >::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
+        for(std::map< std::string, Profile::Accumulator >::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
         {
-            if (it->second.empty())
-                continue;
+            p_stream << it->first << Profile::repeat(l_break+l_first+l_columns[0].size()-it->first.size());
             
-            double l_avg, l_stddev;
-            unsigned long long l_median, l_min, l_max, l_sum;
-            Profile::AverageDerivationMedian(it->second, l_avg, l_stddev, l_median, l_min, l_max, l_sum);
-            
-            
-            l_help = it->first + " [" + Profile::convert( p.m_calls.find(it->first)->second ) + " / " + Profile::convert(l_sum) + "]";
-            p_stream << l_help << Profile::repeat(l_break+l_columns[0].size()-l_help.size());
-            
-            l_help = Profile::convert(l_min);
+            l_help = Profile::convert(boost::accumulators::count(it->second));
             p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
-            
-            l_help = Profile::convert(l_max);
-            p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
-            
-            l_help = Profile::convert(l_median);
-            p_stream << l_help << Profile::repeat(l_break+l_columns[1].size()-l_help.size());
-            
-            l_help = Profile::convert(l_avg);
+
+            l_help = Profile::convert(boost::accumulators::sum(it->second));
             p_stream << l_help << Profile::repeat(l_break+l_columns[2].size()-l_help.size());
             
-            l_help = Profile::convert(l_stddev);
+            l_help = Profile::convert(boost::accumulators::min(it->second));
             p_stream << l_help << Profile::repeat(l_break+l_columns[3].size()-l_help.size());
+            
+            l_help = Profile::convert(boost::accumulators::max(it->second));
+            p_stream << l_help << Profile::repeat(l_break+l_columns[4].size()-l_help.size());
+            
+            l_help = Profile::convert(boost::accumulators::median(it->second));
+            p_stream << l_help << Profile::repeat(l_break+l_columns[5].size()-l_help.size());
+            
+            l_help = Profile::convert(boost::accumulators::mean(it->second) );
+            p_stream << l_help << Profile::repeat(l_break+l_columns[6].size()-l_help.size());
+            
+            l_help = Profile::convert(sqrt(boost::accumulators::variance(it->second)));
+            p_stream << l_help << Profile::repeat(l_break+l_columns[7].size()-l_help.size());
             
             p_stream << "\n";
         }
@@ -188,8 +175,8 @@
         
         // memory performance
         l_help = " memory usage ";
-        p_stream << "\n\n\n---" << l_help << Profile::repeat(220-3-l_help.size(), "-") << "\n";
-        p_stream << "physical memory (bytes) : " << Profile::repeat(2) << Profile::getMemorySize() << "\n";
+        p_stream << "\n\n\n---" << l_help << Profile::repeat(205-3-l_help.size(), "-") << "\n";
+        p_stream << "physical memory (bytes) :" << Profile::repeat(3) << Profile::getMemorySize() << "\n";
         
         return p_stream;
     }
