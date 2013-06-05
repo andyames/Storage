@@ -141,7 +141,8 @@
             
         for(std::map< std::string, Profile::Accumulator >::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
         {
-            p_stream << it->first << std::string(l_break+l_first+l_columns[0].size()-it->first.size(), ' ');
+            l_help = it->first.substr(0, l_first+l_break+l_columns[0].size()-1);
+            p_stream << l_help << std::string(l_first+l_break+l_columns[0].size()-l_help.size(), ' ');
             
             l_help = Profile::convert(boost::accumulators::count(it->second));
             p_stream << l_help << std::string(l_break+l_columns[1].size()-l_help.size(), ' ');
