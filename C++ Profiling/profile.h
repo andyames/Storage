@@ -50,10 +50,22 @@
         {
             public :
             
+                typedef boost::accumulators::accumulator_set<double, boost::accumulators::stats< 
+                    boost::accumulators::tag::count,
+                    boost::accumulators::tag::sum,
+                    boost::accumulators::tag::median, 
+                    boost::accumulators::tag::mean, 
+                    boost::accumulators::tag::variance,
+                    boost::accumulators::tag::min,
+                    boost::accumulators::tag::max
+                > > Accumulator;
+            
+            
                 static void releaseInstance( void );
                 static Profile* getInstance( void );
             
                 static std::size_t getMemorySize(void);
+                std::map< std::string, Accumulator > getTimes( void ) const { return m_times; }
             
                 void setBenchmarkTime( const std::string&, const double& ); 
             
@@ -63,17 +75,6 @@
             
             
             private :
-            
-                typedef boost::accumulators::accumulator_set<double, boost::accumulators::stats< 
-                            boost::accumulators::tag::count,
-                            boost::accumulators::tag::sum,
-                            boost::accumulators::tag::median, 
-                            boost::accumulators::tag::mean, 
-                            boost::accumulators::tag::variance,
-                            boost::accumulators::tag::min,
-                            boost::accumulators::tag::max
-                        > > Accumulator;
-            
             
                 class Spinlock {
                   

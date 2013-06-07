@@ -80,7 +80,7 @@ env = Environment( tools = ["default", "URLDownload", "Repository", "Unpack", "D
 # === Database builder =============================================================================================
 # The database builder can create and update database structures which are supported by http://www.sqlalchemy.org/ .
 # The database will be describe like a Python dictionary with the parameters and pushed to the builder
-
+"""
 #http://docs.sqlalchemy.org/en/rel_0_8/orm/extensions/declarative.html
 Base = sqlalchemy.ext.declarative.declarative_base()
 
@@ -105,6 +105,7 @@ class Address(Base) :
 db = env.DatabaseCreate( "db", [User, Address], connection="mysql+pymysql://root:root@localhost:8889/scons", DATABASE_VERBOSE = True )
 Default( db )
 AlwaysBuild( db )
+"""
 # ==================================================================================================================
 
 
@@ -121,6 +122,7 @@ AlwaysBuild( db )
 
 # we download LUA source package, extract it and compiled it for OSX on-fly
 """
+xx         = env.URLDownload( "lapack-download", LaPack_DownloadURL() )
 dw         = env.URLDownload( "lua-download", LUA_DownloadURL() )
 extractdir = str(dw).replace("'", "").replace("[", "").replace("]", "").replace(".tar.gz", "")
 extract    = env.Unpack("lua-extract",  dw, UNPACKLIST=[os.path.join(extractdir, "src", i) for i in [ "lapi.c", "lcode.c", "lctype.c", "ldebug.c", "ldo.c", "ldump.c", "lfunc.c", "lgc.c", "llex.c", "lmem.c", "lobject.c", "lopcodes.c", "lparser.c", "lstate.c", "lstring.c", "ltable.c", "ltm.c", "lundump.c", "lvm.c", "lzio.c", "lauxlib.c", "lbaselib.c", "lbitlib.c", "lcorolib.c", "ldblib.c", "liolib.c", "lmathlib.c", "loslib.c", "lstrlib.c", "ltablib.c", "loadlib.c", "linit.c"]])

@@ -10,6 +10,35 @@ import urllib2, urlparse
 import SCons.Builder, SCons.Node, SCons.Errors
 
 
+# define an own node, for checking the data behind the URL,
+# we must download only than, if the data is changed, the
+# node derivates from the Python.Value node
+class URLNode(SCons.Node.Python.Value) :
+
+    # overload the get_csig (copy the source from the
+    # Python.Value node and append the data of the URL header
+    def get_csig(self, calc=None): 
+        try: 
+            return self.ninfo.csig 
+        except AttributeError: 
+            pass 
+        
+        try :
+            response = urllib2.urlopen( str(self.value) ).info()
+        except Exception, e :
+            raise SCons.Errors.StopError( e )
+            
+        contents = ""
+        if "Last-Modified" in response :
+            contents = contents + response["Last-Modified"]
+        if "Content-Length" in response :
+            contents = contents + response["Content-Length"]
+        if not contents :
+            contents = self.get_contents() 
+        self.get_ninfo().csig = contents 
+        return contents 
+
+
 
 # creates the downloading output message
 # @param s original message
@@ -63,7 +92,7 @@ def __emitter( target, source, env ) :
 # the filename of the URL
 # @param env environment object
 def generate( env ) :
-    env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = SCons.Node.Python.Value,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
+    env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = URLNode,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
     env.Replace(URLDOWNLOAD_USEURLFILENAME =  True )
 
 # existing function of the builder
