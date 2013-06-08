@@ -70,6 +70,10 @@ def __action( target, source, env ) :
 # @param source URL for download
 # @param env environment object
 def __emitter( target, source, env ) :
+    # if source is up-to-date, we do nothing :-)
+    if source[0].is_up_to_date() :
+        return None, source
+
     # we need a temporary file, because the dependency graph
     # of Scons need a physical existing file - so we prepare it
     target[0].prepare()
