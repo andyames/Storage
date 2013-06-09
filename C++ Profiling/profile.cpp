@@ -127,7 +127,7 @@
         
         // time performance
         std::string l_help(" time performance (in ms) ");
-        p_stream << "\n---" << l_help << std::string(l_length-3-l_help.size(), '-')  << "\n";
+        p_stream << "\n===" << l_help << std::string(l_length-3-l_help.size(), '=')  << "\n";
         for(std::size_t i=0; i < l_columncount; ++i)
         {
             p_stream << l_columns[i];
@@ -171,7 +171,7 @@
         
         // memory performance
         l_help = " memory usage ";
-        p_stream << "\n\n\n---" << l_help << std::string(l_length-3-l_help.size(), '-') << std::endl;
+        p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
         p_stream << "physical memory (bytes) :" << std::string(3, ' ') << Profile::getMemorySize() << std::endl;
         
         return p_stream;
