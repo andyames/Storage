@@ -114,6 +114,8 @@
     }
 
 
+    // add data for http://de.wikipedia.org/wiki/Boxplot
+
     std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
     {
         const std::size_t l_length      = 215;
