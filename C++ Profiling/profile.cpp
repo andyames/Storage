@@ -118,10 +118,10 @@
 
     std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
     {
-        const std::size_t l_length      = 215;
+        const std::size_t l_length      = 200;
         const std::size_t l_first       = 25;
-        const std::size_t l_break       = 15;
-        const std::string l_columns[]   = { std::string("function name"), std::string("call count"), std::string("accumulation"), std::string("minimum"), std::string("maximum"), std::string("median"), std::string("average"), std::string("standard deviation") };
+        const std::size_t l_break       = 10;
+        const std::string l_columns[]   = { std::string("function name"), std::string("call count"), std::string("accumulation"), std::string("minimum"), std::string("maximum"), std::string("range"), std::string("median"), std::string("average"), std::string("standard deviation") };
         const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
 
 
@@ -158,14 +158,17 @@
             l_help = Profile::convert(boost::accumulators::max(it->second));
             p_stream << l_help << std::string(l_break+l_columns[4].size()-l_help.size(), ' ');
             
-            l_help = Profile::convert(boost::accumulators::median(it->second));
+            l_help = Profile::convert(boost::accumulators::max(it->second)-boost::accumulators::min(it->second));
             p_stream << l_help << std::string(l_break+l_columns[5].size()-l_help.size(), ' ');
             
-            l_help = Profile::convert(boost::accumulators::mean(it->second) );
+            l_help = Profile::convert(boost::accumulators::median(it->second));
             p_stream << l_help << std::string(l_break+l_columns[6].size()-l_help.size(), ' ');
             
-            l_help = Profile::convert(sqrt(boost::accumulators::variance(it->second)));
+            l_help = Profile::convert(boost::accumulators::mean(it->second) );
             p_stream << l_help << std::string(l_break+l_columns[7].size()-l_help.size(), ' ');
+            
+            l_help = Profile::convert(sqrt(boost::accumulators::variance(it->second)));
+            p_stream << l_help << std::string(l_break+l_columns[8].size()-l_help.size(), ' ');
             
             p_stream << "\n";
         }
