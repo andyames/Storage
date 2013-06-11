@@ -40,6 +40,7 @@
         #include <boost/accumulators/statistics/count.hpp>
         #include <boost/accumulators/statistics/median.hpp>
         #include <boost/accumulators/statistics/variance.hpp>
+        #include <boost/accumulators/statistics/extended_p_square.hpp>
         
         #include "benchmark.h"
 
@@ -58,6 +59,7 @@
                     boost::accumulators::tag::variance,
                     boost::accumulators::tag::min,
                     boost::accumulators::tag::max
+                    //boost::accumulators::tag::extended_p_square
                 > > Accumulator;
             
             

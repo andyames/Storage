@@ -34,8 +34,11 @@
     void Profile::setBenchmarkTime( const std::string& p_name, const double& p_time )
     {
         m_locktimes.lock();
-        if (m_times.find(p_name) == m_times.end())
+        if (m_times.find(p_name) == m_times.end()) {
+            //boost::array<double, 3> probs = {0.25, 0.5, 0.75};
+            //m_times[p_name] = Accumulator( boost::accumulators::extended_p_square_probabilities = probs );
             m_times[p_name] = Accumulator();
+        }
         m_times[p_name](p_time);
         m_locktimes.unlock();
     }
@@ -140,7 +143,7 @@
                     p_stream << std::string(l_break, ' ');
         }
         p_stream << "\n\n";
-            
+        
         for(std::map< std::string, Profile::Accumulator >::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
         {
             l_help = it->first.substr(0, l_first+l_break+l_columns[0].size()-1);
