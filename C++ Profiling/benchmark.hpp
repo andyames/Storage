@@ -14,22 +14,27 @@
             extern "C" unsigned __int64 __rdtsc();
         #endif
 
-
+    
+        /** class for detecting time & memory data **/
         template<typename T> class Benchmark
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
             
             public :
             
-                Benchmark( const std::string& p_functionname ) : m_functionname(p_functionname), m_starttime(getCycles()) {};
-                ~Benchmark( void ) { unsigned long long l_endtime = getCycles(); Profile<T>::getInstance()->setBenchmarkTime( m_functionname, getCPUFrequencyScale() * (l_endtime-m_starttime) ); };
+                /** ctor starts the measurement **/
+                Benchmark( const std::string& p_name ) : m_name(p_name), m_starttime(getCycles()) {};
+                /** dtor stops the measurement and push the data to the singleton **/
+                ~Benchmark( void ) { unsigned long long l_endtime = getCycles(); Profile<T>::getInstance()->setBenchmarkTime( m_name, getCPUFrequencyScale() * (l_endtime-m_starttime) ); };
             
             
             private :
             
-                const std::string m_functionname;
+                /** name of the item **/
+                const std::string m_name;
             
-                unsigned long long m_starttime;
+                /** start time value **/
+                const unsigned long long m_starttime;
             
 
             
@@ -100,7 +105,9 @@
             
             
             
-            
+                /** returns the scaling factor of the CPU frequncy
+                 * @return scaling factor
+                 **/
                 static T getCPUFrequencyScale( void )
                 {
                     // http://msdn.microsoft.com/en-us/library/windows/desktop/ms644905(v=vs.85).aspx

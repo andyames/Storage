@@ -2,23 +2,18 @@
 
     #define PROFILING
     #define PROFILINGNAME(name)
-
-    #define PROFILINGINIT
-    #define PROFILINGRELEASE
-    #define PROFILINGDEFINITION
-    #define PROFILINGSHOW
+    #define PROFILINGINITIALISATION
+    #define PROFILINGCOUT
 
 #else
     
     #ifndef __PROFILE
     #define __PROFILE
     
-        #define PROFILING               Benchmark<double> l_benchmark__LINE__(__PRETTY_FUNCTION__);
-        #define PROFILINGNAME(name)     Benchmark<double> l_benchmark__LINE__(name);
-
-        // http://c2.com/cgi/wiki?TooFewTemplateParameterLists
-        #define PROFILINGINIT           template<> Profile<double>* Profile<double>::m_instance = new Profile<double>();
-        #define PROFILINGCOUT           std::cout << *Profile<double>::getInstance() << std::endl;
+        #define PROFILING                   Benchmark<double> l_benchmark__LINE__(__PRETTY_FUNCTION__);
+        #define PROFILINGNAME(name)         Benchmark<double> l_benchmark__LINE__(name);
+        #define PROFILINGINITIALISATION     template<> boost::shared_ptr< Profile<double> > Profile<double>::m_instance = boost::shared_ptr< Profile<double> >(new Profile<double>());
+        #define PROFILINGCOUT               std::cout << *Profile<double>::getInstance() << std::endl;
 
 
         extern "C" {
@@ -51,6 +46,7 @@
         #include <stdexcept>
         #include <boost/bind.hpp>
         #include <boost/atomic.hpp>
+        #include <boost/shared_ptr.hpp>
         #include <boost/static_assert.hpp>
         #include <boost/accumulators/accumulators.hpp>
         #include <boost/accumulators/statistics/sum.hpp>
@@ -66,18 +62,14 @@
         #include "benchmark.hpp"
 
 
-        // predeclation for class and operator<< overload
-        // http://www.parashift.com/c++-faq-lite/template-friends.html
-        //template<typename T> class Profile;
-        //template<typename T> friend std::ostream& operator<< ( std::ostream&, const Profile<T>& );
-
-
+        /** profiling singleton class, that collects all time & memory information **/
         template<typename T> class Profile
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
             
             public :
             
+                /** typedef of the statistic accumulator **/
                 typedef boost::accumulators::accumulator_set<T, boost::accumulators::stats< 
                     boost::accumulators::tag::count,
                     boost::accumulators::tag::sum,
@@ -89,20 +81,47 @@
                     //boost::accumulators::tag::extended_p_square
                 > > Accumulator;
             
+                /** typdef of the map & accumulator **/
                 typedef std::map< std::string, Accumulator > DataMap;
             
             
-                static void releaseInstance( void );
+                /** returns the data
+                 * @param datamap
+                 **/
+                DataMap getTimes( void ) const { return m_times; }
             
             
+                /** returns the instance pointer
+                 * @return pointer to the instance
+                 **/
                 static Profile<T>* getInstance( void )
                 {
                     if (!m_instance) 
                         throw std::runtime_error("profiling instance does not exists");    
-                    return m_instance;
+                    return m_instance.get();
+                };
+
+                
+                /** sets the time
+                 * @param p_name name of the timeset
+                 * @param p_time time value
+                 **/
+                void setBenchmarkTime( const std::string& p_name, const T& p_time )
+                {
+                    m_locktimes.lock();
+                    if (m_times.find(p_name) == m_times.end()) {
+                        //boost::array<T, 3> probs = {0.25, 0.5, 0.75};
+                        //m_times[p_name] = Accumulator( boost::accumulators::extended_p_square_probabilities = probs );
+                        m_times[p_name] = Accumulator();
+                    }
+                    m_times[p_name](p_time);
+                    m_locktimes.unlock();
                 };
             
-            
+
+                /** read the size of the main memory
+                 * @param return memory size in bytes
+                 **/
                 static std::size_t getMemorySize(void)
                 {
                     #if defined(_WIN32) && (defined(__CYGWIN__) || defined(__CYGWIN32__))
@@ -176,23 +195,11 @@
                 };
             
             
-                DataMap getTimes( void ) const { return m_times; }
-            
-            
-                void setBenchmarkTime( const std::string& p_name, const T& p_time )
-                {
-                    m_locktimes.lock();
-                    if (m_times.find(p_name) == m_times.end()) {
-                        //boost::array<T, 3> probs = {0.25, 0.5, 0.75};
-                        //m_times[p_name] = Accumulator( boost::accumulators::extended_p_square_probabilities = probs );
-                        m_times[p_name] = Accumulator();
-                    }
-                    m_times[p_name](p_time);
-                    m_locktimes.unlock();
-                };
-            
-            
-                // add data for http://de.wikipedia.org/wiki/Boxplot
+                /** stream operator for http://en.wikipedia.org/wiki/Box_plot
+                 * @param p_stream input stream
+                 * @param p object
+                 * @return updated stream
+                 **/
                 friend std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
                 {
                     const std::size_t l_length      = 200;
@@ -263,60 +270,75 @@
                     
                     return p_stream;
                 };
-
-            
             
             
             private :
-        
             
+                /** class for spinlocks **/
                 class Spinlock {
-                  
+                    
                     public :
                     
-                        Spinlock( void ) : m_state(Unlocked) {};
-                        ~Spinlock( void ) { unlock(); };
+                    /** ctor of the spinlock **/
+                    Spinlock( void ) : m_state(Unlocked) {};
+                    /** dtor of the spinlock with explicit realsing lock **/
+                    ~Spinlock( void ) { unlock(); };
                     
-                        void lock( void )
-                        {
-                            while (m_state.exchange(Locked, boost::memory_order_relaxed) == Locked)
-                                __asm__ __volatile__ ("rep; nop" : : );
-                            atomic_thread_fence(boost::memory_order_acquire);     
-                        };
+                    /** lock the object **/
+                    void lock( void )
+                    {
+                        while (m_state.exchange(Locked, boost::memory_order_relaxed) == Locked)
+                            __asm__ __volatile__ ("rep; nop" : : );
+                        atomic_thread_fence(boost::memory_order_acquire);     
+                    };
                     
-                        void unlock( void )
-                        {
-                            m_state.store(Unlocked, boost::memory_order_release);
-                        };
+                    /** unlock the object **/
+                    void unlock( void ) { m_state.store(Unlocked, boost::memory_order_release); };
                     
                     
                     private :
                     
+                        /** typedef of lock definition **/
                         typedef enum {Locked, Unlocked} LockState;
+                        /** locking state **/
                         boost::atomic<LockState> m_state;
                     
                 };
-            
                 
-            
-                static Profile<T>* m_instance;
-
+                
+                /** static definition of the profile object pointer **/
+                static boost::shared_ptr< Profile<T> > m_instance;
+                
+                /** spinlock of the time object **/
                 Spinlock m_locktimes;
+                
+                /** map of the times **/
                 DataMap m_times;
+                
+                /** map of the memory values **/
                 DataMap m_memory;
-
-            
+                
+                
+                /** ctor **/
                 Profile( void ) : m_locktimes(), m_times(), m_memory() {};
-                ~Profile( void ) {};
+                /** copy-ctor **/
                 Profile( const Profile& ) {};
+                /** equal operator **/
                 Profile& operator=( const Profile& );
                 
+                /** convert method for numerical values
+                 * @param value
+                 * @param p precision
+                 * @return string with converted value
+                 **/
                 static std::string convert( const T& p_in, const std::size_t& p = 5 )
                 {
                     std::ostringstream os;
                     os << std::fixed << std::setprecision(p) << p_in;
                     return os.str();
                 };
+            
+
         };
 
 

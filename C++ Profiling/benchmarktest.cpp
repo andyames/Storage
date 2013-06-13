@@ -2,7 +2,7 @@
 #include <iostream>
 #include "benchmark.hpp"
 
-PROFILINGINIT
+PROFILINGINITIALISATION
 
 
 void func(void)
