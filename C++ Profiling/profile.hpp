@@ -94,12 +94,7 @@
                 /** returns the instance pointer
                  * @return pointer to the instance
                  **/
-                static Profile<T>* getInstance( void )
-                {
-                    if (!m_instance) 
-                        throw std::runtime_error("profiling instance does not exists");    
-                    return m_instance.get();
-                };
+                static Profile<T>* getInstance( void ) { return m_instance.get(); };
 
                 
                 /** sets the time
