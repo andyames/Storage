@@ -1,6 +1,6 @@
 
 #include <iostream>
-#include "benchmark.h"
+#include "benchmark.hpp"
 
 PROFILINGINIT
 
