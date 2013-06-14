@@ -44,22 +44,16 @@
         #include <sstream>
         #include <iostream>
         #include <stdexcept>
-        #include <boost/bind.hpp>
+        #include <boost/array.hpp>
         #include <boost/atomic.hpp>
         #include <boost/shared_ptr.hpp>
         #include <boost/static_assert.hpp>
+        #include <boost/accumulators/statistics.hpp>
         #include <boost/accumulators/accumulators.hpp>
-        #include <boost/accumulators/statistics/sum.hpp>
-        #include <boost/accumulators/statistics/min.hpp>
-        #include <boost/accumulators/statistics/max.hpp>
-        #include <boost/accumulators/statistics/mean.hpp>
-        #include <boost/accumulators/statistics/stats.hpp>
-        #include <boost/accumulators/statistics/count.hpp>
-        #include <boost/accumulators/statistics/median.hpp>
-        #include <boost/accumulators/statistics/variance.hpp>
-        #include <boost/accumulators/statistics/extended_p_square.hpp>
-        
+
         #include "benchmark.hpp"
+
+        namespace bac = boost::accumulators;
 
 
         /** profiling singleton class, that collects all time & memory information **/
@@ -70,15 +64,15 @@
             public :
             
                 /** typedef of the statistic accumulator **/
-                typedef boost::accumulators::accumulator_set<T, boost::accumulators::stats< 
-                    boost::accumulators::tag::count,
-                    boost::accumulators::tag::sum,
-                    boost::accumulators::tag::median, 
-                    boost::accumulators::tag::mean, 
-                    boost::accumulators::tag::variance,
-                    boost::accumulators::tag::min,
-                    boost::accumulators::tag::max
-                    //boost::accumulators::tag::extended_p_square
+                typedef bac::accumulator_set<T, bac::stats< 
+                    bac::tag::count,
+                    bac::tag::sum,
+                    bac::tag::median, 
+                    bac::tag::mean, 
+                    bac::tag::variance,
+                    bac::tag::min,
+                    bac::tag::max,
+                    bac::tag::extended_p_square_quantile
                 > > Accumulator;
             
                 /** typdef of the map & accumulator **/
@@ -104,12 +98,19 @@
                 void setBenchmarkTime( const std::string& p_name, const T& p_time )
                 {
                     m_locktimes.lock();
-                    if (m_times.find(p_name) == m_times.end()) {
-                        //boost::array<T, 3> probs = {0.25, 0.5, 0.75};
-                        //m_times[p_name] = Accumulator( boost::accumulators::extended_p_square_probabilities = probs );
-                        m_times[p_name] = Accumulator();
+                    
+                    typename DataMap::iterator it = m_times.find(p_name);
+                    if (it != m_times.end())
+                    {
+                        it->second(p_time);
+                    } else {
+                        const boost::array<T,3> probs = {0.25, 0.50, 0.75};
+                        
+                        Accumulator l_acc( bac::extended_p_square_probabilities = probs );
+                        l_acc(p_time);
+                        m_times.insert( std::pair<std::string,Accumulator>(p_name, l_acc) );
                     }
-                    m_times[p_name](p_time);
+                    
                     m_locktimes.unlock();
                 };
             
@@ -230,28 +231,28 @@
                         l_help = it->first.substr(0, l_first+l_break+l_columns[0].size()-1);
                         p_stream << l_help << std::string(l_first+l_break+l_columns[0].size()-l_help.size(), ' ');
                         
-                        l_help = convert(boost::accumulators::count(it->second), 0);
+                        l_help = convert(bac::count(it->second), 0);
                         p_stream << l_help << std::string(l_break+l_columns[1].size()-l_help.size(), ' ');
                         
-                        l_help = convert(boost::accumulators::sum(it->second));
+                        l_help = convert(bac::sum(it->second));
                         p_stream << l_help << std::string(l_break+l_columns[2].size()-l_help.size(), ' ');
                         
-                        l_help = convert(boost::accumulators::min(it->second));
+                        l_help = convert(bac::min(it->second));
                         p_stream << l_help << std::string(l_break+l_columns[3].size()-l_help.size(), ' ');
                         
-                        l_help = convert(boost::accumulators::max(it->second));
+                        l_help = convert(bac::max(it->second));
                         p_stream << l_help << std::string(l_break+l_columns[4].size()-l_help.size(), ' ');
                         
-                        l_help = convert(boost::accumulators::max(it->second)-boost::accumulators::min(it->second));
+                        l_help = convert(bac::max(it->second)-boost::accumulators::min(it->second));
                         p_stream << l_help << std::string(l_break+l_columns[5].size()-l_help.size(), ' ');
                         
-                        l_help = convert(boost::accumulators::median(it->second));
+                        l_help = convert(bac::median(it->second));
                         p_stream << l_help << std::string(l_break+l_columns[6].size()-l_help.size(), ' ');
                         
-                        l_help = convert(boost::accumulators::mean(it->second) );
+                        l_help = convert(bac::mean(it->second) );
                         p_stream << l_help << std::string(l_break+l_columns[7].size()-l_help.size(), ' ');
                         
-                        l_help = convert(sqrt(boost::accumulators::variance(it->second)));
+                        l_help = convert(sqrt(bac::variance(it->second)));
                         p_stream << l_help << std::string(l_break+l_columns[8].size()-l_help.size(), ' ');
                         
                         p_stream << "\n";
