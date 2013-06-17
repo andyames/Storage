@@ -10,10 +10,10 @@
     #ifndef __PROFILE
     #define __PROFILE
     
-        #define PROFILING                   Benchmark<double> l_benchmark__LINE__(__PRETTY_FUNCTION__);
-        #define PROFILINGNAME(name)         Benchmark<double> l_benchmark__LINE__(name);
-        #define PROFILINGINITIALISATION     template<> boost::shared_ptr< Profile<double> > Profile<double>::m_instance = boost::shared_ptr< Profile<double> >(new Profile<double>());
-        #define PROFILINGCOUT               std::cout << *Profile<double>::getInstance() << std::endl;
+        #define PROFILING                   Benchmark<> l_benchmark__LINE__(__PRETTY_FUNCTION__);
+        #define PROFILINGNAME(name)         Benchmark<> l_benchmark__LINE__(name);
+        #define PROFILINGINITIALISATION     template<> boost::shared_ptr< Profile<> > Profile<>::m_instance = boost::shared_ptr< Profile<> >(new Profile<>());
+        #define PROFILINGCOUT               std::cout << *Profile<>::getInstance() << std::endl;
 
 
         extern "C" {
@@ -57,18 +57,20 @@
 
 
         /** profiling singleton class, that collects all time & memory information **/
-        template<typename T> class Profile
+        template<typename T = double, std::size_t LOWERQUANTIL=2500, std::size_t UPPERQUANTIL=7500> class Profile
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
+            BOOST_STATIC_ASSERT( LOWERQUANTIL < UPPERQUANTIL );
+            BOOST_STATIC_ASSERT( UPPERQUANTIL <= 10000 );
             
             public :
             
-                /** typedef of the statistic accumulator **/
+                /** typedef of the statistic accumulator - median is set in the 0.5-quantil **/
                 typedef bac::accumulator_set<T, bac::stats< 
                     bac::tag::count,
                     bac::tag::sum,
-                    bac::tag::median, 
                     bac::tag::mean, 
+                    bac::tag::median,
                     bac::tag::variance,
                     bac::tag::min,
                     bac::tag::max,
@@ -101,10 +103,10 @@
                     
                     typename DataMap::iterator it = m_times.find(p_name);
                     if (it != m_times.end())
-                    {
                         it->second(p_time);
-                    } else {
-                        const boost::array<T,3> probs = {0.25, 0.50, 0.75};
+                    else {
+                        // set lower & upper quantil and 0.5-quantil for median
+                        const boost::array<T,3> probs = {static_cast<T>(LOWERQUANTIL) / 10000, static_cast<T>(0.5), static_cast<T>(UPPERQUANTIL) / 10000};
                         
                         Accumulator l_acc( bac::extended_p_square_probabilities = probs );
                         l_acc(p_time);
@@ -246,7 +248,8 @@
                         l_help = convert(bac::max(it->second)-boost::accumulators::min(it->second));
                         p_stream << l_help << std::string(l_break+l_columns[5].size()-l_help.size(), ' ');
                         
-                        l_help = convert(bac::median(it->second));
+                        //l_help = convert(bac::median(it->second));
+                        l_help = convert(bac::quantile(it->second, bac::quantile_probability = static_cast<T>(0.5)));
                         p_stream << l_help << std::string(l_break+l_columns[6].size()-l_help.size(), ' ');
                         
                         l_help = convert(bac::mean(it->second) );
@@ -256,7 +259,10 @@
                         p_stream << l_help << std::string(l_break+l_columns[8].size()-l_help.size(), ' ');
                         
                         p_stream << "\n";
+                    
                     }
+                    
+                    
                     
                     
                     // memory performance

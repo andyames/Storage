@@ -16,7 +16,7 @@
 
     
         /** class for detecting time & memory data **/
-        template<typename T> class Benchmark
+        template<typename T = double> class Benchmark
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
             
