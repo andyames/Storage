@@ -24,8 +24,8 @@
                 #include <unistd.h>
                 #include <sys/types.h>
                 #include <sys/param.h>
-            
-                #if defined(BSD)
+                
+                #if defined(BSD) || (defined(__APPLE__) && defined(__MACH__))
                     #include <sys/sysctl.h>
                 #endif
 
@@ -157,79 +157,49 @@
                 }
             
 
-                /** read the size of the main memory
-                 * @param return memory size in kilobytes
-                 **/
-                static T getMemorySize(void)
-                {
-                    T l_size = 0;
-                    
-                    #if defined(_WIN32) && (defined(__CYGWIN__) || defined(__CYGWIN32__))
-                        MEMORYSTATUS status;
-                        status.dwLength = sizeof(status);
-                        GlobalMemoryStatus( &status );
-                        l_size = status.dwTotalPhys;
-                    
-                    #elif defined(_WIN32)
-                        MEMORYSTATUSEX status;
-                        status.dwLength = sizeof(status);
-                        GlobalMemoryStatusEx( &status );
-                        l_size = status.ullTotalPhys;
-                    
-                    #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
-
-                        #if defined(CTL_HW) && (defined(HW_MEMSIZE) || defined(HW_PHYSMEM64))
-                            int mib[2];
-                            mib[0] = CTL_HW;
-                    
-                            #if defined(HW_MEMSIZE)
-                                mib[1] = HW_MEMSIZE;
-                            #elif defined(HW_PHYSMEM64)
-                                mib[1] = HW_PHYSMEM64;
-                            #endif
-
-                            int64_t size = 0;
-                            std::size_t len = sizeof( size );
-                            if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
-                                l_size = size;
-
-                        #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
-                            l_size = static_cast<std::size_t>(sysconf( _SC_PHYS_PAGES )) * static_cast<std::size_t>(sysconf( _SC_PAGESIZE ));
-                    
-                        #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGE_SIZE)
-                            l_size = static_cast<std::size:t>(sysconf( _SC_PHYS_PAGES )) * static_cast<std::size_t>(sysconf( _SC_PAGE_SIZE ));
-                    
-                        #elif defined(CTL_HW) && (defined(HW_PHYSMEM) || defined(HW_REALMEM))
-                            int mib[2];
-                            mib[0] = CTL_HW;
-                    
-                            #if defined(HW_REALMEM)
-                                mib[1] = HW_REALMEM;
-                            #elif defined(HW_PYSMEM)
-                                mib[1] = HW_PHYSMEM;
-                            #endif
-
-                            unsigned int size = 0;
-                            std::size_t len = sizeof( size );
-                            if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
-                                l_size = size;
-                    
-                        #endif
-                    
-                    #else
-                        #error "Unable to define getMemorySize() for an unknown OS."
-                    #endif
-                    
-                    return l_size / MEMSCALE;
-                };
-            
-            
-                /** returns a map with CPU information
+                /** returns a map with system information
                  * @return information map
                  **/
-                static std::map<std::string, std::string> getCPUInfo(void)
+                static std::map<std::string, std::string> getSystemInformation(void)
                 {
-                    return std::map<std::string, std::string>();
+                    std::map<std::string, std::string> l_info;
+
+                    #if (defined(__APPLE__) && defined(__MACH__))
+                    
+                        // https://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man3/sysctlbyname.3.html
+                    
+                        std::size_t l_cpus    = 0;
+                        std::size_t l_lencpus = sizeof(l_cpus);
+                        if (!sysctlbyname("hw.physicalcpu_max", &l_cpus, &l_lencpus, NULL, 0))
+                            l_info["physical cpu(s)"] = convert(l_cpus, 0);
+                        
+                        std::size_t l_mem    = 0;
+                        std::size_t l_lenmem = sizeof(l_mem);
+                        if (!sysctlbyname("hw.memsize", &l_mem, &l_lenmem, NULL, 0))
+                            l_info["physical memory ("+byteName()+")"] = convert( static_cast<T>(l_mem) / MEMSCALE, 2);
+                    
+                        std::size_t l_umem    = 0;
+                        std::size_t l_lenumem = sizeof(l_mem);
+                        if (!sysctlbyname("hw.usermem", &l_umem, &l_lenumem, NULL, 0))
+                            l_info["non-kernel memory ("+byteName()+")"] = convert( static_cast<T>(l_umem) / MEMSCALE, 2);
+                        
+                        std::size_t l_page    = 0;
+                        std::size_t l_lenpage = sizeof(l_page);
+                        if (!sysctlbyname("hw.pagesize", &l_page, &l_lenpage, NULL, 0))
+                            l_info["page size (bytes)"] = convert( static_cast<T>(l_page), 0);
+                    
+                        std::size_t l_conproc    = 0;
+                        std::size_t l_lenconproc = sizeof(l_conproc);
+                        if (!sysctlbyname("kern.maxproc", &l_conproc, &l_lenconproc, NULL, 0))
+                            l_info["number concurrent processes"] = convert( l_conproc, 0);
+                    
+
+                    #else
+                        #error "Unable to define getSystemInformation() for an unkown OS."
+                    #endif
+                    
+                    
+                    return l_info;
                 };
             
             
@@ -356,8 +326,12 @@
                     // static information
                     l_help = " static information ";
                     p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
-                    p_stream << "physical memory ("+Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName()+") " << std::string(l_first+l_break+l_columns[0].size()-19-Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName().size(), ' ') << convert(getMemorySize(), 2) << std::endl;
+                    
+                    const std::map<std::string, std::string> l_info = getSystemInformation();
+                    for(std::map<std::string, std::string>::const_iterator it = l_info.begin(); it != l_info.end(); it++)
+                        p_stream << it->first << std::string(l_first+l_break+l_columns[0].size()-it->first.size(), ' ') << it->second << "\n";
 
+                    
                     
                     return p_stream;
                 };
@@ -450,7 +424,6 @@
                     return std::string();
                 };
             
-
         };
 
 
