@@ -53,6 +53,9 @@
 
         namespace bac = boost::accumulators;
 
+        // http://www.gamedev.net/topic/438752-idenitfying-cpu-brand--model-c/
+        // http://en.wikipedia.org/wiki/CPUID
+
     
         /** type of the memory byte scale **/
         enum MemorySizeScale {
@@ -216,10 +219,17 @@
                     #else
                         #error "Unable to define getMemorySize() for an unknown OS."
                     #endif
-                
-                    std::cout << " => " << l_size << std::endl;
                     
                     return l_size / MEMSCALE;
+                };
+            
+            
+                /** returns a map with CPU information
+                 * @return information map
+                 **/
+                static std::map<std::string, std::string> getCPUInfo(void)
+                {
+                    return std::map<std::string, std::string>();
                 };
             
             
@@ -241,7 +251,7 @@
                     };
                     const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
                     
-                    
+                                    
                     
                     // time performance
                     p_stream << std::left;
@@ -295,7 +305,7 @@
                     
                                         
                     // memory performance
-                    l_help = " resident set size usage (in "+Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName()+") ";
+                    l_help = " resident set size usage (in " + Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName() + ") ";
                     p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
                     for(std::size_t i=0; i < l_columncount; ++i)
                     {
@@ -346,7 +356,7 @@
                     // static information
                     l_help = " static information ";
                     p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
-                    p_stream << "physical memory ("+Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName()+") " << std::string(l_first+l_break+l_columns[0].size()-21-Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName().size(), ' ') << convert(getMemorySize(), 2) << std::endl;
+                    p_stream << "physical memory ("+Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName()+") " << std::string(l_first+l_break+l_columns[0].size()-19-Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName().size(), ' ') << convert(getMemorySize(), 2) << std::endl;
 
                     
                     return p_stream;

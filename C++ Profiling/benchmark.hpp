@@ -35,7 +35,7 @@
             public :
             
                 /** ctor starts the measurement **/
-                Benchmark( const std::string& p_name ) : m_name(p_name), m_rssmemory(getCurrentRSS()), m_rsspeak(0), m_starttime(getCycles()) {};
+                Benchmark( const std::string& p_name ) : m_name(p_name), m_rssmemory(getCurrentRSS()), m_starttime(getCycles()) {};
                 
                 /** dtor stops the measurement and push the data to the singleton **/
                 ~Benchmark( void )
@@ -55,9 +55,6 @@
                 /** resident set size memory **/
                 const std::size_t m_rssmemory;
             
-                /** resident peak memory **/
-                const std::size_t m_rsspeak;
-
                 /** start time value **/
                 const unsigned long long m_starttime;
 
@@ -150,6 +147,9 @@
                         return info.resident_size;
                     
                     #elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+                        
+                        // change to C++ streams
+                    
                         long rss = static_cast<long>(0);
                         FILE* fp = NULL;
                         if ( (fp = fopen( "/proc/self/statm", "r" )) == NULL )
