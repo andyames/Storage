@@ -8,11 +8,21 @@
         #include "profile.hpp"
 
         #if (defined(__APPLE__) && defined(__MACH__))
+            #include <unistd.h>
+            #include <sys/resource.h>
             #include <mach/mach.h>
             #include <mach/mach_time.h>
-            #include <mach/task.h>
-            #include <mach/mach_init.h>
-        #elif defined(_MSC_VER) && defined(_M_X64)
+        
+        #elif defined(_WIN32)
+            #include <windows.h>
+            #include <psapi.h>
+
+        #elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+            #include <stdio.h>
+
+        #endif
+
+        #if defined(_MSC_VER) && defined(_M_X64)
             extern "C" unsigned __int64 __rdtsc();
         #endif
 
@@ -25,7 +35,7 @@
             public :
             
                 /** ctor starts the measurement **/
-                Benchmark( const std::string& p_name ) : m_name(p_name), m_rssmemory(getResidentSetSize()), m_starttime(getCycles()) {};
+                Benchmark( const std::string& p_name ) : m_name(p_name), m_rssmemory(getCurrentRSS()), m_rsspeak(0), m_starttime(getCycles()) {};
                 
                 /** dtor stops the measurement and push the data to the singleton **/
                 ~Benchmark( void )
@@ -42,8 +52,11 @@
                 /** name of the item **/
                 const std::string m_name;
             
-                /** virtual memory **/
-                const unsigned long long m_rssmemory;
+                /** resident set size memory **/
+                const std::size_t m_rssmemory;
+            
+                /** resident peak memory **/
+                const std::size_t m_rsspeak;
 
                 /** start time value **/
                 const unsigned long long m_starttime;
@@ -111,26 +124,48 @@
             
                     unsigned long long getCycles( void ) const { return mach_absolute_time(); };
                     
-                    unsigned long long getResidentSetSize( void ) const
-                    {
-                        // do static !?
-                        task_t task = MACH_PORT_NULL;
-                        if (task_for_pid(current_task(), getpid(), &task) != KERN_SUCCESS)
-                            return 0;
-                        
-                        struct task_basic_info t_info;
-                        mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
-                        task_info(task, TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count);
-                    
-                        return t_info.resident_size;
-                    }
-            
-            
-                
                 #else 
-                    #error "Unable to define getCycles( ) for an unknown OS."
+                    #error "Unable to define getCycles() for an unknown OS."
                 #endif
 
+            
+            
+                /**
+                 * Returns the current resident set size (physical memory use) measured
+                 * in bytes, or zero if the value cannot be determined on this OS.
+                 * @return memory
+                 */
+                std::size_t getCurrentRSS( void ) const
+                {
+                    #if defined(_WIN32)
+                        PROCESS_MEMORY_COUNTERS info;
+                        GetProcessMemoryInfo( GetCurrentProcess(), &info, sizeof(info) );
+                        return info.WorkingSetSize;
+                    
+                    #elif defined(__APPLE__) && defined(__MACH__)
+                        struct task_basic_info info;
+                        mach_msg_type_number_t infoCount = TASK_BASIC_INFO_COUNT;
+                        if ( task_info( mach_task_self(), TASK_BASIC_INFO, (task_info_t)&info, &infoCount ) != KERN_SUCCESS )
+                            return 0;
+                        return info.resident_size;
+                    
+                    #elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+                        long rss = static_cast<long>(0);
+                        FILE* fp = NULL;
+                        if ( (fp = fopen( "/proc/self/statm", "r" )) == NULL )
+                            return 0;		
+                        if ( fscanf( fp, "%*s%ld", &rss ) != 1 )
+                        {
+                            fclose( fp );
+                            return 0;		
+                        }
+                        fclose( fp );
+                        return rss * sysconf( _SC_PAGESIZE);
+                    
+                    #else
+                        #error "Unable to define getCurrentRSS() for an unknown OS."
+                    #endif
+                }
             
             
             
@@ -148,6 +183,9 @@
                         mach_timebase_info_data_t l_timeinfo;
                         if (!mach_timebase_info( &l_timeinfo ))
                             l_scale =  1e-6 * static_cast<double>(l_timeinfo.numer) / l_timeinfo.denom; 
+                    
+                    #else
+                        #error "Unable to get CPU frequncy scale in getCPUFrequencyScale() for an unknown OS."
                     #endif
                 
                     return l_scale;

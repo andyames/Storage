@@ -24,13 +24,11 @@
                 #include <unistd.h>
                 #include <sys/types.h>
                 #include <sys/param.h>
-    
+            
                 #if defined(BSD)
                     #include <sys/sysctl.h>
                 #endif
-    
-            #else
-                #error "Unable to define getMemorySize( ) for an unknown OS."
+
             #endif
         }
 
@@ -55,9 +53,18 @@
 
         namespace bac = boost::accumulators;
 
+    
+        /** type of the memory byte scale **/
+        enum MemorySizeScale {
+            byte = 1,
+            KiB  = 1024,
+            MiB  = 1048576,
+            GiB  = 1073741824
+        };
+
 
         /** profiling singleton class, that collects all time & memory information **/
-        template<typename T = double, std::size_t LOWERQUANTIL=2500, std::size_t UPPERQUANTIL=7500> class Profile
+        template<typename T = double, std::size_t LOWERQUANTIL=2500, std::size_t UPPERQUANTIL=7500, MemorySizeScale MEMSCALE=MiB> class Profile
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
             BOOST_STATIC_ASSERT( LOWERQUANTIL < UPPERQUANTIL );
@@ -96,10 +103,10 @@
                 /** returns the instance pointer
                  * @return pointer to the instance
                  **/
-                static Profile<T>* getInstance( void ) { return m_instance.get(); };
+                static Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>* getInstance( void ) { return m_instance.get(); };
 
                 
-                /** sets the time
+                /** sets the time (is set in milliseconds)
                  * @param p_name name of the time set
                  * @param p_time time value
                  **/
@@ -123,7 +130,7 @@
                 };
             
                 
-                /** sets the resident set size of the memory
+                /** sets the resident set size of the memory (in KiB)
                  * @param p_name of the memory set
                  * @param p_mem memory value
                  **/
@@ -133,13 +140,13 @@
                     
                     typename DataMap::iterator it = m_rssmemory.find(p_name);
                     if (it != m_rssmemory.end())
-                        it->second(p_mem);
+                        it->second( static_cast<T>(p_mem) / MEMSCALE );
                     else {
                         // set lower & upper quantil and 0.5-quantil for median
                         const boost::array<T,3> probs = {static_cast<T>(LOWERQUANTIL) / 10000, static_cast<T>(0.5), static_cast<T>(UPPERQUANTIL) / 10000};
                         
                         Accumulator l_acc( bac::extended_p_square_probabilities = probs );
-                        l_acc(p_mem);
+                        l_acc( static_cast<T>(p_mem) / MEMSCALE );
                         m_rssmemory.insert( std::pair<std::string,Accumulator>(p_name, l_acc) );
                     }
                     
@@ -148,78 +155,71 @@
             
 
                 /** read the size of the main memory
-                 * @param return memory size in bytes
+                 * @param return memory size in kilobytes
                  **/
-                static std::size_t getMemorySize(void)
+                static T getMemorySize(void)
                 {
+                    T l_size = 0;
+                    
                     #if defined(_WIN32) && (defined(__CYGWIN__) || defined(__CYGWIN32__))
-                        /* Cygwin under Windows. ------------------------------------ */
-                        /* New 64-bit MEMORYSTATUSEX isn't available.  Use old 32.bit */
                         MEMORYSTATUS status;
                         status.dwLength = sizeof(status);
                         GlobalMemoryStatus( &status );
-                        return (std::size_t)status.dwTotalPhys;
+                        l_size = status.dwTotalPhys;
                     
                     #elif defined(_WIN32)
-                        /* Windows. ------------------------------------------------- */
-                        /* Use new 64-bit MEMORYSTATUSEX, not old 32-bit MEMORYSTATUS */
                         MEMORYSTATUSEX status;
                         status.dwLength = sizeof(status);
                         GlobalMemoryStatusEx( &status );
-                        return (std::size_t)status.ullTotalPhys;
+                        l_size = status.ullTotalPhys;
                     
                     #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
-                        /* UNIX variants. ------------------------------------------- */
-                        /* Prefer sysctl() over sysconf() except sysctl() HW_REALMEM and HW_PHYSMEM */
-                        
+
                         #if defined(CTL_HW) && (defined(HW_MEMSIZE) || defined(HW_PHYSMEM64))
                             int mib[2];
                             mib[0] = CTL_HW;
+                    
                             #if defined(HW_MEMSIZE)
-                                mib[1] = HW_MEMSIZE;            /* OSX. --------------------- */
+                                mib[1] = HW_MEMSIZE;
                             #elif defined(HW_PHYSMEM64)
-                                mib[1] = HW_PHYSMEM64;          /* NetBSD, OpenBSD. --------- */
+                                mib[1] = HW_PHYSMEM64;
                             #endif
-                        
-                            int64_t size = 0;               /* 64-bit */
+
+                            int64_t size = 0;
                             std::size_t len = sizeof( size );
                             if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
-                                return (std::size_t)size;
-                        
-                            throw std::runtime_error("can not determine memory size");
-                    
-                        #elif defined(_SC_AIX_REALMEM)
-                            /* AIX. ----------------------------------------------------- */
-                            return (std::size_t)sysconf( _SC_AIX_REALMEM ) * (size_t)1024L;
-                        
+                                l_size = size;
+
                         #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
-                            /* FreeBSD, Linux, OpenBSD, and Solaris. -------------------- */
-                            return (std::size_t)sysconf( _SC_PHYS_PAGES ) * (std::size_t)sysconf( _SC_PAGESIZE );
-                        
+                            l_size = static_cast<std::size_t>(sysconf( _SC_PHYS_PAGES )) * static_cast<std::size_t>(sysconf( _SC_PAGESIZE ));
+                    
                         #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGE_SIZE)
-                            /* Legacy. -------------------------------------------------- */
-                            return (std::size_t)sysconf( _SC_PHYS_PAGES ) * (std::size_t)sysconf( _SC_PAGE_SIZE );
-                        
+                            l_size = static_cast<std::size:t>(sysconf( _SC_PHYS_PAGES )) * static_cast<std::size_t>(sysconf( _SC_PAGE_SIZE ));
+                    
                         #elif defined(CTL_HW) && (defined(HW_PHYSMEM) || defined(HW_REALMEM))
-                            /* DragonFly BSD, FreeBSD, NetBSD, OpenBSD, and OSX. -------- */
                             int mib[2];
                             mib[0] = CTL_HW;
+                    
                             #if defined(HW_REALMEM)
-                                mib[1] = HW_REALMEM;		/* FreeBSD. ----------------- */
+                                mib[1] = HW_REALMEM;
                             #elif defined(HW_PYSMEM)
-                                mib[1] = HW_PHYSMEM;		/* Others. ------------------ */
+                                mib[1] = HW_PHYSMEM;
                             #endif
-                        
-                            unsigned int size = 0;		/* 32-bit */
+
+                            unsigned int size = 0;
                             std::size_t len = sizeof( size );
                             if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
-                                return (size_t)size;
-                        
-                            throw std::runtime_error("can not determine memory size");
-                        #endif /* sysctl and sysconf variants */
-                    #endif
+                                l_size = size;
                     
-                    return 0;
+                        #endif
+                    
+                    #else
+                        #error "Unable to define getMemorySize() for an unknown OS."
+                    #endif
+                
+                    std::cout << " => " << l_size << std::endl;
+                    
+                    return l_size / MEMSCALE;
                 };
             
             
@@ -258,7 +258,7 @@
                     }
                     p_stream << "\n\n";
                     
-                    for(typename Profile<T>::DataMap::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
+                    for(typename Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::DataMap::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
                     {
                         l_help = it->first.substr(0, l_first+l_break+l_columns[0].size()-1);
                         p_stream << l_help << std::string(l_first+l_break+l_columns[0].size()-l_help.size(), ' ');
@@ -278,8 +278,8 @@
                         l_help = convert(bac::max(it->second)-boost::accumulators::min(it->second));
                         p_stream << l_help << std::string(l_break+l_columns[5].size()-l_help.size(), ' ');
                         
-                        //l_help = convert(bac::median(it->second));
-                        l_help = convert(bac::quantile(it->second, bac::quantile_probability = static_cast<T>(0.5)));
+                        l_help = convert(bac::median(it->second));
+                        //l_help = convert(bac::quantile(it->second, bac::quantile_probability = static_cast<T>(0.5)));
                         p_stream << l_help << std::string(l_break+l_columns[6].size()-l_help.size(), ' ');
                         
                         l_help = convert(bac::mean(it->second));
@@ -295,7 +295,7 @@
                     
                                         
                     // memory performance
-                    l_help = " resident set size usage (in KiB) ";
+                    l_help = " resident set size usage (in "+Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName()+") ";
                     p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
                     for(std::size_t i=0; i < l_columncount; ++i)
                     {
@@ -307,7 +307,7 @@
                                 p_stream << std::string(l_break, ' ');
                     }
                     p_stream << "\n\n";
-                    for(typename Profile<T>::DataMap::const_iterator it = p.m_rssmemory.begin(); it != p.m_rssmemory.end(); it++)
+                    for(typename Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::DataMap::const_iterator it = p.m_rssmemory.begin(); it != p.m_rssmemory.end(); it++)
                     {
                         l_help = it->first.substr(0, l_first+l_break+l_columns[0].size()-1);
                         p_stream << l_help << std::string(l_first+l_break+l_columns[0].size()-l_help.size(), ' ');
@@ -346,7 +346,7 @@
                     // static information
                     l_help = " static information ";
                     p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
-                    p_stream << "physical memory (bytes) " << std::string(l_first+l_break+l_columns[0].size()-24, ' ') << getMemorySize() << std::endl;
+                    p_stream << "physical memory ("+Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName()+") " << std::string(l_first+l_break+l_columns[0].size()-21-Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName().size(), ' ') << convert(getMemorySize(), 2) << std::endl;
 
                     
                     return p_stream;
@@ -388,7 +388,7 @@
                 
                 
                 /** static definition of the profile object pointer **/
-                static boost::shared_ptr< Profile<T> > m_instance;
+                static boost::shared_ptr< Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE> > m_instance;
                 
                 /** spinlock of the time object **/
                 Spinlock m_locktimes;
@@ -410,6 +410,7 @@
                 /** equal operator **/
                 Profile& operator=( const Profile& );
                 
+            
                 /** convert method for numerical values
                  * @param value
                  * @param p precision
@@ -420,6 +421,23 @@
                     std::ostringstream os;
                     os << std::fixed << std::setprecision(p) << p_in;
                     return os.str();
+                };
+            
+            
+                /** returns string name of the memscale enum
+                 * @param p_in memory scale
+                 * @return string name
+                 **/
+                static std::string byteName( void )
+                {
+                    switch (MEMSCALE) {
+                        case byte : return std::string("bytes"); break;
+                        case KiB  : return std::string("KiB");   break;
+                        case MiB  : return std::string("MiB");   break;
+                        case GiB  : return std::string("GiB");   break;
+                    }
+                    
+                    return std::string();
                 };
             
 
