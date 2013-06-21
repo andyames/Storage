@@ -100,7 +100,7 @@
 
                 
                 /** sets the time
-                 * @param p_name name of the timeset
+                 * @param p_name name of the time set
                  * @param p_time time value
                  **/
                 void setBenchmarkTime( const std::string& p_name, const T& p_time )
@@ -122,20 +122,24 @@
                     m_locktimes.unlock();
                 };
             
-            
-                void setBenchmarkResidentSetSize( const std::string& p_name, const T& p_time )
+                
+                /** sets the resident set size of the memory
+                 * @param p_name of the memory set
+                 * @param p_mem memory value
+                 **/
+                void setBenchmarkResidentSetSize( const std::string& p_name, const T& p_mem )
                 {
                     m_lockrssmemory.lock();
                     
                     typename DataMap::iterator it = m_rssmemory.find(p_name);
                     if (it != m_rssmemory.end())
-                        it->second(p_time);
+                        it->second(p_mem);
                     else {
                         // set lower & upper quantil and 0.5-quantil for median
                         const boost::array<T,3> probs = {static_cast<T>(LOWERQUANTIL) / 10000, static_cast<T>(0.5), static_cast<T>(UPPERQUANTIL) / 10000};
                         
                         Accumulator l_acc( bac::extended_p_square_probabilities = probs );
-                        l_acc(p_time);
+                        l_acc(p_mem);
                         m_rssmemory.insert( std::pair<std::string,Accumulator>(p_name, l_acc) );
                     }
                     
