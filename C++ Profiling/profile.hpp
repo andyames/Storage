@@ -193,6 +193,33 @@
                         if (!sysctlbyname("kern.maxproc", &l_conproc, &l_lenconproc, NULL, 0))
                             l_info["number concurrent processes"] = convert( l_conproc, 0);
                     
+                        size_t l_lenosname = 0;
+                        sysctlbyname("kern.ostype", NULL, &l_lenosname, NULL, 0);
+                        if (l_lenosname) {
+                            char* l_osname = static_cast<char*>(malloc( l_lenosname * sizeof(char) ));
+                            sysctlbyname("kern.ostype", l_osname, &l_lenosname, NULL, 0);
+                            l_info["OS name"] = std::string(l_osname);
+                            delete(l_osname);
+                        }
+                    
+                        size_t l_lenosrelease = 0;
+                        sysctlbyname("kern.osrelease", NULL, &l_lenosrelease, NULL, 0);
+                        if (l_lenosrelease) {
+                            char* l_osrelease = static_cast<char*>(malloc( l_lenosrelease * sizeof(char) ));
+                            sysctlbyname("kern.osrelease", l_osrelease, &l_lenosrelease, NULL, 0);
+                            l_info["OS release"] = std::string(l_osrelease);
+                            delete(l_osrelease);
+                        }
+                    
+                        size_t l_lenkernel = 0;
+                        sysctlbyname("kern.version", NULL, &l_lenkernel, NULL, 0);
+                        if (l_lenkernel) {
+                            char* l_kernel = static_cast<char*>(malloc( l_lenkernel * sizeof(char) ));
+                            sysctlbyname("kern.version", l_kernel, &l_lenkernel, NULL, 0);
+                            l_info["Kernel"] = std::string(l_kernel);
+                            delete(l_kernel);
+                        }
+                    
 
                     #else
                         #error "Unable to define getSystemInformation() for an unkown OS."
