@@ -1,3 +1,4 @@
 build
 *.tmproj
 *.xcodeproj
+.sconsign.dblite
