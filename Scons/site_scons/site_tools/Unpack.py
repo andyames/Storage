@@ -229,7 +229,7 @@ def generate( env ) :
     toolset = { 
         "STOPONEMPTYFILE"  : True,
         "VIWEXTRACTOUTPUT" : False,
-        "EXTRACTDIR"       : ".",
+        "EXTRACTDIR"       : os.curdir,
         "EXTRACTOR" : { 
             "TARGZ" : {
                 "PRIORITY"       : 0,
@@ -370,6 +370,7 @@ def generate( env ) :
             toolset["EXTRACTOR"]["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_nix_unzip
             toolset["EXTRACTOR"]["ZIP"]["LISTFLAGS"]       = "-l"
             toolset["EXTRACTOR"]["ZIP"]["EXTRACTFLAGS"]    = "-oqq"
+            toolset["EXTRACTOR"]["ZIP"]["EXTRACTSUFFIX"]   = "-d ${UNPACK['EXTRACTDIR']}"
         
         if env.WhereIs("tar") :
             toolset["EXTRACTOR"]["TAR"]["RUN"]             = "tar"
