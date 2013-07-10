@@ -78,7 +78,7 @@ def __emitter( target, source, env ) :
         return target, source
 
     try :
-        url = urlparse.urlparse( str(source[0]) )
+        url = urlparse.urlparse( urllib2.urlopen( str(source[0]) ).geturl() )
     except Exception, e :
         raise SCons.Errors.StopError( e )
 
