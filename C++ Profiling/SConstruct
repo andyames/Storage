@@ -1,13 +1,4 @@
 import os
 
-env = Environment( CPPDEFINES=["BENCHMARK"] );
-
-env.AppendUnique(CPPPATH = os.environ["CPPPATH"].split(os.pathsep))
-if "DYLD_LIBRARY_PATH" in os.environ :
-    env.AppendUnique(LIBPATH = os.environ["DYLD_LIBRARY_PATH"].split(os.pathsep)) 
-elif "LD_LIBRARY_PATH" in os.environ :
-    env.AppendUnique(LIBPATH = os.environ["LD_LIBRARY_PATH"].split(os.pathsep)) 
-elif "LIBRARY_PATH" in os.environ :
-    env.AppendUnique(LIBPATH = os.environ["LIBRARY_PATH"].split(os.pathsep)) 
-
+env = Environment( CPPDEFINES=["BENCHMARK"], ENV = os.environ );
 env.Program("benchmark", source=["benchmarktest.cpp"])
