@@ -327,7 +327,16 @@
                 };
 
 
-            void createListLayout( std::ostream& p_stream, const std::string& p_head, const std::map<std::string, std::string>& p_data, const std::size_t& p_length = 200, const std::size_t& p_first = 25, const std::size_t& p_break = 10, const std::size_t& p_firstcolumnsize = 13 ) const
+                /** private method for list output
+                 * @param p_stream stream object
+                 * @param p_head table head
+                 * @param p_data data
+                 * @param p_length max line length
+                 * @param p_first length of the first column
+                 * @param p_break seperator size between columns
+                 * @param p_firstcolumnsize size / length of the first column
+                 **/
+                void createListLayout( std::ostream& p_stream, const std::string& p_head, const std::map<std::string, std::string>& p_data, const std::size_t& p_length = 200, const std::size_t& p_first = 25, const std::size_t& p_break = 10, const std::size_t& p_firstcolumnsize = 13 ) const
                 {
                     p_stream << std::left << "\n=== " << p_head << " " << std::string(p_length-3-p_head.size(), '=')  << "\n";
 
@@ -336,7 +345,7 @@
                 }
 
 
-                /** private method for output
+                /** private method for table output
                  * @param p_stream stream object
                  * @param p_head table head
                  * @param p_data data
