@@ -135,9 +135,8 @@
             
             
                 /** Returns the current resident set size (physical memory use) measured
-                 * in bytes, or zero if the value cannot be determined on this OS.
                  * @todo change C file handle to C++ stream access (on Linux)
-                 * @return memory
+                 * @return memory in bytes
                  **/
                 std::size_t getCurrentRSS( void ) const
                 {
@@ -175,13 +174,12 @@
             
             
                 /** returns the scaling factor of the CPU frequncy
+                 * frequency scale (Windows) @see http://msdn.microsoft.com/en-us/library/windows/desktop/ms644905(v=vs.85).aspx
+                 * frequency scale (OSX) @see http://developer.apple.com/library/mac/#qa/qa1398/_index.html / http://www.macresearch.org/tutorial_performance_and_time
                  * @return scaling factor
                  **/
                 static T getCPUFrequencyScale( void )
                 {
-                    // http://msdn.microsoft.com/en-us/library/windows/desktop/ms644905(v=vs.85).aspx
-                    // http://developer.apple.com/library/mac/#qa/qa1398/_index.html  / http://www.macresearch.org/tutorial_performance_and_time 
-                
                     T l_scale = 1;
                 
                     #if defined(__APPLE__) && defined(__MACH__)
