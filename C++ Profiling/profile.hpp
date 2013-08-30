@@ -67,30 +67,28 @@
 
 
         /** profiling singleton class, that collects all time & memory information **/
-        template<typename T = double, std::size_t LOWERQUANTIL=2500, std::size_t UPPERQUANTIL=7500, MemorySizeScale MEMSCALE=MiB> class Profile
+        template<typename T = double, MemorySizeScale MEMSCALE=MiB> class Profile
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
-            BOOST_STATIC_ASSERT( LOWERQUANTIL < UPPERQUANTIL );
-            BOOST_STATIC_ASSERT( UPPERQUANTIL <= 10000 );
-            
+
             public :
-            
+
                 /** typedef of the statistic accumulator - median is set in the 0.5-quantil **/
-                typedef bac::accumulator_set<T, bac::stats< 
+                typedef bac::accumulator_set<T, bac::stats<
                     bac::tag::count,
                     bac::tag::sum,
-                    bac::tag::mean, 
+                    bac::tag::mean,
                     bac::tag::median,
                     bac::tag::variance,
                     bac::tag::min,
-                    bac::tag::max,
-                    bac::tag::extended_p_square_quantile
+                    bac::tag::max
                 > > Accumulator;
+
             
                 /** typdef of the map & accumulator **/
                 typedef std::map< std::string, Accumulator > DataMap;
-            
-            
+
+
                 /** returns the time data
                  * @param datamap
                  **/
@@ -106,7 +104,7 @@
                 /** returns the instance pointer
                  * @return pointer to the instance
                  **/
-                static Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>* getInstance( void ) { return m_instance.get(); };
+                static Profile<T, MEMSCALE>* getInstance( void ) { return m_instance.get(); };
 
                 
                 /** sets the time (is set in milliseconds)
@@ -121,10 +119,7 @@
                     if (it != m_times.end())
                         it->second(p_time);
                     else {
-                        // set lower & upper quantil and 0.5-quantil for median
-                        const boost::array<T,3> probs = {static_cast<T>(LOWERQUANTIL) / 10000, static_cast<T>(0.5), static_cast<T>(UPPERQUANTIL) / 10000};
-                        
-                        Accumulator l_acc( bac::extended_p_square_probabilities = probs );
+                        Accumulator l_acc;
                         l_acc(p_time);
                         m_times.insert( std::pair<std::string,Accumulator>(p_name, l_acc) );
                     }
@@ -145,10 +140,7 @@
                     if (it != m_rssmemory.end())
                         it->second( static_cast<T>(p_mem) / MEMSCALE );
                     else {
-                        // set lower & upper quantil and 0.5-quantil for median
-                        const boost::array<T,3> probs = {static_cast<T>(LOWERQUANTIL) / 10000, static_cast<T>(0.5), static_cast<T>(UPPERQUANTIL) / 10000};
-                        
-                        Accumulator l_acc( bac::extended_p_square_probabilities = probs );
+                        Accumulator l_acc;
                         l_acc( static_cast<T>(p_mem) / MEMSCALE );
                         m_rssmemory.insert( std::pair<std::string,Accumulator>(p_name, l_acc) );
                     }
@@ -237,128 +229,11 @@
                  **/
                 friend std::ostream& operator<< ( std::ostream& p_stream, const Profile& p )
                 {
-                    const std::size_t l_length      = 200;
-                    const std::size_t l_first       = 25;
-                    const std::size_t l_break       = 10;
-                    const std::string l_columns[]   = { std::string("function name"),   std::string("call count"), 
-                        std::string("accumulation"),    std::string("minimum"),
-                        std::string("maximum"),         std::string("range"),
-                        std::string("median"),          std::string("average"),
-                        std::string("standard deviation")
-                    };
-                    const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
-                    
-                                    
-                    
-                    // time performance
-                    p_stream << std::left;
-                    std::string l_help(" time performance (in ms) ");
-                    p_stream << "\n===" << l_help << std::string(l_length-3-l_help.size(), '=')  << "\n";
-                    for(std::size_t i=0; i < l_columncount; ++i)
-                    {
-                        p_stream << l_columns[i];
-                        if (i < l_columncount - 1)
-                            if (!i)
-                                p_stream << std::string(l_break+l_first, ' ');
-                            else 
-                                p_stream << std::string(l_break, ' ');
-                    }
+                    p.createTableLayout( p_stream, std::string("time performance (in ms)"), p.m_times);
                     p_stream << "\n\n";
-                    
-                    for(typename Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::DataMap::const_iterator it = p.m_times.begin(); it != p.m_times.end(); it++)
-                    {
-                        l_help = it->first.substr(0, l_first+l_break+l_columns[0].size()-1);
-                        p_stream << l_help << std::string(l_first+l_break+l_columns[0].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::count(it->second), 0);
-                        p_stream << l_help << std::string(l_break+l_columns[1].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::sum(it->second));
-                        p_stream << l_help << std::string(l_break+l_columns[2].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::min(it->second));
-                        p_stream << l_help << std::string(l_break+l_columns[3].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::max(it->second));
-                        p_stream << l_help << std::string(l_break+l_columns[4].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::max(it->second)-boost::accumulators::min(it->second));
-                        p_stream << l_help << std::string(l_break+l_columns[5].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::median(it->second));
-                        //l_help = convert(bac::quantile(it->second, bac::quantile_probability = static_cast<T>(0.5)));
-                        p_stream << l_help << std::string(l_break+l_columns[6].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::mean(it->second));
-                        p_stream << l_help << std::string(l_break+l_columns[7].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(sqrt(bac::variance(it->second)));
-                        p_stream << l_help << std::string(l_break+l_columns[8].size()-l_help.size(), ' ');
-                        
-                        p_stream << "\n";
-                    
-                    }
-                    
-                    
-                                        
-                    // memory performance
-                    l_help = " resident set size usage (in " + Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::byteName() + ") ";
-                    p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
-                    for(std::size_t i=0; i < l_columncount; ++i)
-                    {
-                        p_stream << l_columns[i];
-                        if (i < l_columncount - 1)
-                            if (!i)
-                                p_stream << std::string(l_break+l_first, ' ');
-                            else 
-                                p_stream << std::string(l_break, ' ');
-                    }
+                    p.createTableLayout( p_stream, std::string("resident set size usage (in " + Profile<T, MEMSCALE>::byteName() + ")"), p.m_rssmemory);
                     p_stream << "\n\n";
-                    for(typename Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE>::DataMap::const_iterator it = p.m_rssmemory.begin(); it != p.m_rssmemory.end(); it++)
-                    {
-                        l_help = it->first.substr(0, l_first+l_break+l_columns[0].size()-1);
-                        p_stream << l_help << std::string(l_first+l_break+l_columns[0].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::count(it->second), 0);
-                        p_stream << l_help << std::string(l_break+l_columns[1].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::sum(it->second), 2);
-                        p_stream << l_help << std::string(l_break+l_columns[2].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::min(it->second), 2);
-                        p_stream << l_help << std::string(l_break+l_columns[3].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::max(it->second), 2);
-                        p_stream << l_help << std::string(l_break+l_columns[4].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::max(it->second)-boost::accumulators::min(it->second), 2);
-                        p_stream << l_help << std::string(l_break+l_columns[5].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::median(it->second), 2);
-                        //l_help = convert(bac::quantile(it->second, bac::quantile_probability = static_cast<T>(0.5)), 2);
-                        p_stream << l_help << std::string(l_break+l_columns[6].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(bac::mean(it->second), 2);
-                        p_stream << l_help << std::string(l_break+l_columns[7].size()-l_help.size(), ' ');
-                        
-                        l_help = convert(sqrt(bac::variance(it->second)), 2);
-                        p_stream << l_help << std::string(l_break+l_columns[8].size()-l_help.size(), ' ');
-                        
-                        p_stream << "\n";
-                        
-                    }
-
-                    
-                    
-                    // static information
-                    l_help = " static information ";
-                    p_stream << "\n\n\n===" << l_help << std::string(l_length-3-l_help.size(), '=') << std::endl;
-                    
-                    const std::map<std::string, std::string> l_info = getSystemInformation();
-                    for(std::map<std::string, std::string>::const_iterator it = l_info.begin(); it != l_info.end(); it++)
-                        p_stream << it->first << std::string(l_first+l_break+l_columns[0].size()-it->first.size(), ' ') << it->second << "\n";
-
-                    
+                    p.createListLayout( p_stream, std::string("system information"), p.getSystemInformation() );
                     
                     return p_stream;
                 };
@@ -399,7 +274,7 @@
                 
                 
                 /** static definition of the profile object pointer **/
-                static boost::shared_ptr< Profile<T, LOWERQUANTIL, UPPERQUANTIL, MEMSCALE> > m_instance;
+                static boost::shared_ptr< Profile<T, MEMSCALE> > m_instance;
                 
                 /** spinlock of the time object **/
                 Spinlock m_locktimes;
@@ -450,6 +325,89 @@
                     
                     return std::string();
                 };
+
+
+            void createListLayout( std::ostream& p_stream, const std::string& p_head, const std::map<std::string, std::string>& p_data, const std::size_t& p_length = 200, const std::size_t& p_first = 25, const std::size_t& p_break = 10, const std::size_t& p_firstcolumnsize = 13 ) const
+                {
+                    p_stream << std::left << "\n=== " << p_head << " " << std::string(p_length-3-p_head.size(), '=')  << "\n";
+
+                    for(std::map<std::string, std::string>::const_iterator it = p_data.begin(); it != p_data.end(); it++)
+                        p_stream << it->first << std::string(p_first+p_break+p_firstcolumnsize-it->first.size(), ' ') << it->second << "\n";
+                }
+
+
+                /** private method for output
+                 * @param p_stream stream object
+                 * @param p_head table head
+                 * @param p_data data
+                 * @param p_length max line length
+                 * @param p_first length of the first column
+                 * @param p_break seperator size between columns
+                 **/
+                void createTableLayout( std::ostream& p_stream, const std::string& p_head, const DataMap& p_data, const std::size_t& p_length = 200, const std::size_t& p_first = 25, const std::size_t& p_break = 10 ) const
+                {
+
+                    const std::string l_columns[]   = {
+                        std::string("function name"),   std::string("call count"),
+                        std::string("accumulation"),    std::string("minimum"),
+                        std::string("maximum"),         std::string("range"),
+                        std::string("median"),          std::string("average"),
+                        std::string("standard deviation")
+                    };
+                    const std::size_t l_columncount = sizeof(l_columns) / sizeof(std::string);
+
+                    
+                    // create head
+                    p_stream << std::left << "\n=== " << p_head << " " << std::string(p_length-3-p_head.size(), '=')  << "\n";
+                    for(std::size_t i=0; i < l_columncount; ++i)
+                    {
+                        p_stream << l_columns[i];
+                        if (i < l_columncount - 1)
+                            if (!i)
+                                p_stream << std::string(p_break+p_first, ' ');
+                            else
+                                p_stream << std::string(p_break, ' ');
+                    }
+                    p_stream << "\n\n";
+
+
+                    // data
+                    for(typename Profile<T, MEMSCALE>::DataMap::const_iterator it = p_data.begin(); it != p_data.end(); it++)
+                    {
+                        std::string l_help;
+
+                        l_help = it->first.substr(0, p_first+p_break+l_columns[0].size()-1);
+                        p_stream << l_help << std::string(p_first+p_break+l_columns[0].size()-l_help.size(), ' ');
+
+                        l_help = convert(bac::count(it->second), 0);
+                        p_stream << l_help << std::string(p_break+l_columns[1].size()-l_help.size(), ' ');
+
+                        l_help = convert(bac::sum(it->second));
+                        p_stream << l_help << std::string(p_break+l_columns[2].size()-l_help.size(), ' ');
+
+                        l_help = convert(bac::min(it->second));
+                        p_stream << l_help << std::string(p_break+l_columns[3].size()-l_help.size(), ' ');
+
+                        l_help = convert(bac::max(it->second));
+                        p_stream << l_help << std::string(p_break+l_columns[4].size()-l_help.size(), ' ');
+
+                        l_help = convert(bac::max(it->second)-boost::accumulators::min(it->second));
+                        p_stream << l_help << std::string(p_break+l_columns[5].size()-l_help.size(), ' ');
+
+                        l_help = convert(bac::median(it->second));
+                        p_stream << l_help << std::string(p_break+l_columns[6].size()-l_help.size(), ' ');
+
+                        l_help = convert(bac::mean(it->second));
+                        p_stream << l_help << std::string(p_break+l_columns[7].size()-l_help.size(), ' ');
+
+                        l_help = convert(sqrt(bac::variance(it->second)));
+                        p_stream << l_help << std::string(p_break+l_columns[8].size()-l_help.size(), ' ');
+
+                        p_stream << "\n";
+                        
+                    }
+                }
+
             
         };
 
