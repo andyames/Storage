@@ -151,6 +151,7 @@
 
                 /** returns a map with system information
                  * @warn system information must be implementated OS specific
+                 * Mac OS X system information @see https://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man3/sysctlbyname.3.html
                  * @return information map
                  **/
                 static std::map<std::string, std::string> getSystemInformation(void)
@@ -158,8 +159,6 @@
                     std::map<std::string, std::string> l_info;
 
                     #if (defined(__APPLE__) && defined(__MACH__))
-                    
-                        // https://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man3/sysctlbyname.3.html
                     
                         std::size_t l_cpus    = 0;
                         std::size_t l_lencpus = sizeof(l_cpus);
