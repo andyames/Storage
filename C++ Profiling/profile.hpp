@@ -51,10 +51,9 @@
 
         #include "benchmark.hpp"
 
-        namespace bac = boost::accumulators;
 
-        // http://www.gamedev.net/topic/438752-idenitfying-cpu-brand--model-c/
-        // http://en.wikipedia.org/wiki/CPUID
+
+        namespace bac = boost::accumulators;
 
     
         /** type of the memory byte scale **/
@@ -71,6 +70,7 @@
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
 
+            
             public :
 
                 /** typedef of the statistic accumulator - median is set in the 0.5-quantil **/
@@ -150,6 +150,7 @@
             
 
                 /** returns a map with system information
+                 * @warn system information must be implementated OS specific
                  * @return information map
                  **/
                 static std::map<std::string, std::string> getSystemInformation(void)
@@ -222,8 +223,8 @@
                 };
             
             
-                /** stream operator for http://en.wikipedia.org/wiki/Box_plot
-                 * @param p_stream input stream
+                /** stream operator for output
+                 * @param p_stream output stream
                  * @param p object
                  * @return updated stream
                  **/
@@ -241,7 +242,9 @@
             
             private :
             
-                /** class for spinlocks **/
+                /** class for spinlocks
+                 * @see http://www.codeproject.com/Articles/184046/Spin-Lock-in-C
+                 **/
                 class Spinlock {
                     
                     public :

@@ -3,9 +3,9 @@
     #ifndef __BENCHMARK
     #define __BENCHMARK
 
-        #include <boost/static_assert.hpp>
-
         #include "profile.hpp"
+
+        #include <boost/static_assert.hpp>
 
         #if (defined(__APPLE__) && defined(__MACH__))
             #include <unistd.h>
@@ -26,11 +26,23 @@
             extern "C" unsigned __int64 __rdtsc();
         #endif
 
+
     
-        /** class for detecting time & memory data **/
+        /** class for detecting time & memory data
+         * @warn memory and CPU access must be implementated for each OS
+         * GCC & MSVC CPU clock count @see http://stackoverflow.com/questions/9887839/clock-cycle-count-wth-gcc
+         * memory measurement tutorial @see http://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use
+         * memory & CPU usage @see http://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+         * memory measurment  (Windows) @see http://www.gamasutra.com/view/feature/1430/monitoring_your_pcs_memory_usage_.php?print=1
+         * memory calculation (Windows) @see http://www.codeproject.com/Articles/87529/Calculate-Memory-Working-Set-Private-Programmatica
+         * memory leak detection (Windows) @see http://www.codeproject.com/Articles/10520/Detecting-memory-leaks-by-using-CRT-diagnostic-fun
+         * overloading new / delete @see http://www.linuxtopia.org/online_books/programming_books/thinking_in_c++/Chapter13_016.html
+         * LibC hooks @see http://www.gnu.org/software/libc/manual/html_node/Hooks-for-Malloc.html
+         **/
         template<typename T = double> class Benchmark
         {
             BOOST_STATIC_ASSERT( !boost::is_integral<T>::value );
+
             
             public :
             
@@ -58,30 +70,12 @@
                 /** start time value **/
                 const unsigned long long m_starttime;
 
-            
-                // http://www.codeproject.com/Articles/184046/Spin-Lock-in-C
-                
-                // http://linux.die.net/man/2/getrusage
-                // http://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
-                // http://www.gamasutra.com/view/feature/1430/monitoring_your_pcs_memory_usage_.php?print=1
-                // http://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use
-                // http://man7.org/linux/man-pages/man3/mallinfo.3.html
-                // http://stackoverflow.com/questions/5120861/how-to-measure-memory-usage-from-inside-a-c-program
-                // http://www.jimbrooks.org/web/c++/system_specific.php
-                // http://stackoverflow.com/questions/1543157/how-can-i-find-out-how-much-memory-my-c-app-is-using-on-the-mac
-                // http://miknight.blogspot.de/2005/11/resident-set-size-in-mac-os-x.html
-                
-                // http://www.codeproject.com/Articles/87529/Calculate-Memory-Working-Set-Private-Programmatica
-                // http://www.codeproject.com/Articles/10520/Detecting-memory-leaks-by-using-CRT-diagnostic-fun
-                // http://www.linuxtopia.org/online_books/programming_books/thinking_in_c++/Chapter13_016.html
-                // http://www.gnu.org/software/libc/manual/html_node/Hooks-for-Malloc.html
-                // http://stackoverflow.com/questions/929893/how-can-i-override-malloc-calloc-free-etc-under-os-x
-                
-                
-                //http://stackoverflow.com/questions/9887839/clock-cycle-count-wth-gcc
                 
                 #if defined(_MSC_VER) && defined(_M_IX86)
-                        
+
+                    /** returns the CPU cycles on MSVC x86
+                     * @return cycle
+                     **/
                     unsigned long long getCycles( void ) const
                     {
                         unsigned long long c;
@@ -97,10 +91,17 @@
                 #elif defined(_MSC_VER) && defined(_M_X64)
                         
                     #pragma intrinsic(__rdtsc)
+
+                    /** returns the CPU cycles on MSVC x64
+                     * @return cycle
+                     **/
                     unsigned long long getCycles( void ) const { return __rdtsc(); };
                 
                 #elif (defined(__unix__) || defined(__unix) || defined(unix)) && defined(__LP64__)
-                
+
+                    /** returns the CPU cycles on Linux x64
+                     * @return cycle
+                     **/
                     unsigned long long getCycles( void ) const
                     {
                         unsigned long long a, d;
@@ -109,7 +110,10 @@
                     };
                 
                 #elif (defined(__unix__) || defined(__unix) || defined(unix)) && !defined(__LP64__)
-                
+
+                    /** returns the CPU cycles on Linux x86
+                     * @return cycle
+                     **/
                     unsigned long long getCycles( void ) const
                     {
                         unsigned long long x;
@@ -118,7 +122,10 @@
                     };
                 
                 #elif defined(__APPLE__) && defined(__MACH__)
-            
+
+                    /** returns the CPU cycles on Mac OS X
+                     * @return cycle
+                     **/
                     unsigned long long getCycles( void ) const { return mach_absolute_time(); };
                     
                 #else 
@@ -127,11 +134,11 @@
 
             
             
-                /**
-                 * Returns the current resident set size (physical memory use) measured
+                /** Returns the current resident set size (physical memory use) measured
                  * in bytes, or zero if the value cannot be determined on this OS.
+                 * @todo change C file handle to C++ stream access (on Linux)
                  * @return memory
-                 */
+                 **/
                 std::size_t getCurrentRSS( void ) const
                 {
                     #if defined(_WIN32)
@@ -148,8 +155,6 @@
                     
                     #elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
                         
-                        // change to C++ streams
-                    
                         long rss = static_cast<long>(0);
                         FILE* fp = NULL;
                         if ( (fp = fopen( "/proc/self/statm", "r" )) == NULL )
