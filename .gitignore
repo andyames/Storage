@@ -1,4 +1,10 @@
-build
-*.tmproj
-*.xcodeproj
-.sconsign.dblite
+*.*
+!.gitignore
+!SConstruct
+!*.md
+!*.py
+!*.xsl
+!*.cpp
+!*.hpp
+!*.h
+!*.graffle
