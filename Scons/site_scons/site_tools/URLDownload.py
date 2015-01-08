@@ -1,8 +1,29 @@
 # -*- coding: utf-8 -*-
 
+############################################################################
+# GPL License                                                              #
+#                                                                          #
+# This file is a SCons (http://www.scons.org/) builder                     #
+# Copyright (c) 2012-14, Philipp Kraus, <philipp.kraus@flashpixx.de>       #
+# This program is free software: you can redistribute it and/or modify     #
+# it under the terms of the GNU General Public License as                  #
+# published by the Free Software Foundation, either version 3 of the       #
+# License, or (at your option) any later version.                          #
+#                                                                          #
+# This program is distributed in the hope that it will be useful,          #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+# GNU General Public License for more details.                             #
+#                                                                          #
+# You should have received a copy of the GNU General Public License        #
+# along with this program. If not, see <http://www.gnu.org/licenses/>.     #
+############################################################################
+
+
+
 # the URLDownload-Builder can be download any data from an URL into a target file
 # and can replace the target file name with the URL filename (the setting variable
-# within the environment object is a boolean type with the name "URLDOWNLOAD_USEURLFILENAM",
+# within the environment object is a boolean type with the name "URLDOWNLOAD_USEURLFILENAM", 
 # default setting replaces the target name with the URL filename)
 
 
@@ -17,26 +38,26 @@ class URLNode(SCons.Node.Python.Value) :
 
     # overload the get_csig (copy the source from the
     # Python.Value node and append the data of the URL header
-    def get_csig(self, calc=None):
-        try:
-            return self.ninfo.csig
-        except AttributeError:
-            pass
-
+    def get_csig(self, calc=None): 
+        try: 
+            return self.ninfo.csig 
+        except AttributeError: 
+            pass 
+        
         try :
             response = urllib2.urlopen( str(self.value) ).info()
         except Exception, e :
             raise SCons.Errors.StopError( "%s [%s]" % (e, self.value) )
-
+            
         contents = ""
         if "Last-Modified" in response :
             contents = contents + response["Last-Modified"]
         if "Content-Length" in response :
             contents = contents + response["Content-Length"]
         if not contents :
-            contents = self.get_contents()
-        self.get_ninfo().csig = contents
-        return contents
+            contents = self.get_contents() 
+        self.get_ninfo().csig = contents 
+        return contents 
 
 
 
@@ -45,7 +66,7 @@ class URLNode(SCons.Node.Python.Value) :
 # @param target target name
 # @param source source name
 # @param env environment object
-def __message( s, target, source, env ) :
+def __message( s, target, source, env ) : 
     print "downloading [%s] to [%s] ..." % (source[0], target[0])
 
 
@@ -94,6 +115,7 @@ def __emitter( target, source, env ) :
 def generate( env ) :
     env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = URLNode,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
     env.Replace(URLDOWNLOAD_USEURLFILENAME =  True )
+
 
 # existing function of the builder
 # @param env environment object

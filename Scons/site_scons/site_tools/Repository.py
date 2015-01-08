@@ -1,5 +1,26 @@
 # -*- coding: utf-8 -*-
 
+############################################################################
+# GPL License                                                              #
+#                                                                          #
+# This file is a SCons (http://www.scons.org/) builder                     #
+# Copyright (c) 2012-14, Philipp Kraus, <philipp.kraus@flashpixx.de>       #
+# This program is free software: you can redistribute it and/or modify     #
+# it under the terms of the GNU General Public License as                  #
+# published by the Free Software Foundation, either version 3 of the       #
+# License, or (at your option) any later version.                          #
+#                                                                          #
+# This program is distributed in the hope that it will be useful,          #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+# GNU General Public License for more details.                             #
+#                                                                          #
+# You should have received a copy of the GNU General Public License        #
+# along with this program. If not, see <http://www.gnu.org/licenses/>.     #
+############################################################################
+
+
+
 # This is a Builder for getting access for a SVN & Git Repositories.
 # The builder need the external command line tools for SVN & Git access,
 # so they must be installed in the system and accessiable by Scons
@@ -14,9 +35,9 @@ import SCons.Builder, SCons.Node, SCons.Errors, SCons.Script
 # @param target target name
 # @param source source name
 # @param env environment object
-def __GitCloneMessage( s, target, source, env ) :
+def __GitCloneMessage( s, target, source, env ) : 
     print "Git clone [%s] into [%s] ..." % (source[0], target[0])
-
+    
 # creates the output message for Git Pull
 # @param s original message
 # @param target target name
@@ -24,13 +45,13 @@ def __GitCloneMessage( s, target, source, env ) :
 # @param env environment object
 def __GitPullMessage( s, target, source, env ) :
     print "Git pull [%s] ..." % (source[0])
-
+    
 # creates the output message for Git Commit
 # @param s original message
 # @param target target name
 # @param source source name
 # @param env environment object
-def __GitCommitMessage( s, target, source, env ) :
+def __GitCommitMessage( s, target, source, env ) : 
     print "Git commit with message [%s] ..." % (target[0])
 
 # emitter for the Git clone call for setting
@@ -41,31 +62,31 @@ def __GitCommitMessage( s, target, source, env ) :
 def __GitCloneEmitter( target, source, env ) :
     env.Clean( target, target[0] )
     return target, source
-
-
+        
+        
 
 # creates the output message for SVN checkout
 # @param s original message
 # @param target target name
 # @param source source name
 # @param env environment object
-def __SVNCheckoutMessage( s, target, source, env ) :
+def __SVNCheckoutMessage( s, target, source, env ) : 
     print "SVN Checkout [%s] into [%s] ..." % (source[0], target[0])
-
+    
 # creates the output message for SVN update
 # @param s original message
 # @param target target name
 # @param source source name
 # @param env environment object
-def __SVNUpdateMessage( s, target, source, env ) :
+def __SVNUpdateMessage( s, target, source, env ) : 
     print "SVN Update [%s] ..." % (source[0])
-
+    
 # creates the output message for SVN update
 # @param s original message
 # @param target target name
 # @param source source name
 # @param env environment object
-def __SVNCommitMessage( s, target, source, env ) :
+def __SVNCommitMessage( s, target, source, env ) : 
     print "SVN Commit [%s] ..." % (source[0])
 
 # emitter for the SVN checkout call for setting
@@ -88,7 +109,7 @@ def __mapemitter( target, source, env ) :
     SCons.Script.Ignore(source, source)
     SCons.Script.AlwaysBuild(source)
     return source, source
-
+        
 
 
 # generate function, that adds the builder to the environment
@@ -96,20 +117,20 @@ def __mapemitter( target, source, env ) :
 def generate( env ) :
     # setup environment variables
     env["REPOSITORY"] = {
-
+    
         # we need some syntax data for calling the SVN client
         # RUN       => path to the command-line svn client
         # CHECKOUT  => checkout command
         # UPDATE    => update command
         # COMMIT    => command for commit
         "SVN" : {
-
+            
             "RUN"       : "svn",
             "CHECKOUT"  : "${REPOSITORY['SVN']['RUN']} checkout $SOURCE ${TARGET.abspath}",
             "UPDATE"    : "${REPOSITORY['SVN']['RUN']} update $SOURCE",
             "COMMIT"    : "${REPOSITORY['SVN']['RUN']} add $SOURCE"+os.path.sep+"* --force && ${REPOSITORY['SVN']['RUN']} commit $SOURCE -m $TARGET"
         },
-
+        
         # we need the working & git dir, but for correct path seperation we store a path seperator and the Git-dir in a variable
         # DIR       => stores relativ to the work-tree the .git directory
         # RUN       => path to the command-line git client
@@ -126,8 +147,8 @@ def generate( env ) :
             "PUSH"      : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} push",
             "CLONE"     : "${REPOSITORY['GIT']['RUN']} clone $SOURCE ${TARGET.abspath}",
             "COMMIT"    : "${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} add . && ${REPOSITORY['GIT']['RUN']} ${REPOSITORY['GIT']['PARAMETER']} commit -m $TARGET"
-    }
-
+        }
+    
     }
 
     # add for each "general" command an own builder
@@ -138,6 +159,7 @@ def generate( env ) :
     env["BUILDERS"]["SVNCheckout"] = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['CHECKOUT']}"),  emitter = __SVNCheckoutEmitter,  source_factory = SCons.Node.Python.Value,  target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCheckoutMessage )
     env["BUILDERS"]["SVNUpdate"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['UPDATE']}"),    emitter = __mapemitter,          source_factory = SCons.Node.FS.Dir,        target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNUpdateMessage )
     env["BUILDERS"]["SVNCommit"]   = SCons.Builder.Builder( action = SCons.Action.Action("${REPOSITORY['SVN']['COMMIT']}"),    emitter = __mapemitter,          source_factory = SCons.Node.FS.Dir,        target_factory = SCons.Node.FS.Dir,  single_source = True,  PRINT_CMD_LINE_FUNC = __SVNCommitMessage )
+
 
 # existing function of the builder
 # @param env environment object

@@ -1,5 +1,26 @@
 # -*- coding: utf-8 -*-
 
+############################################################################
+# GPL License                                                              #
+#                                                                          #
+# This file is a SCons (http://www.scons.org/) builder                     #
+# Copyright (c) 2012-14, Philipp Kraus, <philipp.kraus@flashpixx.de>       #
+# This program is free software: you can redistribute it and/or modify     #
+# it under the terms of the GNU General Public License as                  #
+# published by the Free Software Foundation, either version 3 of the       #
+# License, or (at your option) any later version.                          #
+#                                                                          #
+# This program is distributed in the hope that it will be useful,          #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+# GNU General Public License for more details.                             #
+#                                                                          #
+# You should have received a copy of the GNU General Public License        #
+# along with this program. If not, see <http://www.gnu.org/licenses/>.     #
+############################################################################
+
+
+
 # The Unpack Builder can be used for unpacking archives (eg Zip, TGZ, BZ, ... ).
 # The emitter of the Builder reads the archive data and creates a returning file list
 # the builder extract the archive. The environment variable stores a dictionary "UNPACK"
@@ -33,8 +54,9 @@
 
 
 import subprocess, os
-import SCons.Errors, SCons.Warnings, SCons.Util
 
+import SCons.Errors, SCons.Warnings
+import SCons.Util
 
 
 # enables Scons warning for this builder
@@ -93,10 +115,11 @@ def __fileextractor_win_7zip( env, count, no, i ) :
 # @param env environment object
 # @return extractor entry or None on non existing
 def __getExtractor( source, env ) :
-    # we check each unpacker and get the correct list command first, run the command and
+    # we check each unpacker and get the correc  list command first, run the command and
     # replace the target filelist with the list values, we sorte the extractors by their priority
     for unpackername, extractor in sorted(env["UNPACK"]["EXTRACTOR"].iteritems(), key = lambda (k,v) : (v["PRIORITY"],k)):
         
+        # if the run command not set, we continue the extractor search, otherwise we check the extractor parameters
         if not SCons.Util.is_String(extractor["RUN"]) :
             raise SCons.Errors.StopError("list command of the unpack builder for [%s] archives is not a string" % (unpackername))
         if not len(extractor["RUN"]) :
@@ -137,7 +160,7 @@ def __message( s, target, source, env ) :
 # action function for extracting of the data
 # @param target target packed file
 # @param source extracted files
-# @param env environment object
+# @env environment object
 def __action( target, source, env ) :
     extractor = __getExtractor(source, env)
     if not extractor :
@@ -147,7 +170,7 @@ def __action( target, source, env ) :
     # if the extract command is empty, we create an error
     if len(extractor["EXTRACTCMD"]) == 0 :
         raise SCons.Errors.StopError( "the extractor command for the source file [%s] is empty" % (source[0]) )
-
+            
     # build it now (we need the shell, because some programs need it)
     handle = None
     cmd    = env.subst(extractor["EXTRACTCMD"], source=source, target=target)
@@ -166,7 +189,7 @@ def __action( target, source, env ) :
 # within the archive
 # @param target target packed file
 # @param source extracted files
-# @param env environment object
+# @env environment object
 def __emitter( target, source, env ) :
     extractor = __getExtractor(source, env)
     if not extractor :
@@ -207,7 +230,7 @@ def __emitter( target, source, env ) :
     except Exception, e :
         raise SCons.Errors.StopError( "%s" % (e) )
     
-    # the line removes duplicated names - we need this line, otherwise a cyclic dependency error will occured,
+    # the line removes duplicated names - we need this line, otherwise an cyclic dependency error will occured,
     # because the list process can create redundant data (an archive file can not store redundant content in a filepath)
     target = [i.strip() for i in list(set(target))]
     if not target :
@@ -223,7 +246,7 @@ def __emitter( target, source, env ) :
 
 
 # generate function, that adds the builder to the environment
-# @param env environment object
+# @env environment object
 def generate( env ) :
     # setup environment variable
     toolset = { 
@@ -414,4 +437,3 @@ def generate( env ) :
 # @return true
 def exists(env) :
     return 1
-    
